@@ -1,4 +1,4 @@
-export type   TemporaryDemoType=string;
+export type TemporaryDemoType = string;
 
 export type EvidenceStatus =
   "unreviewed" | "Reviewed" | "reviewed" | "flagged" | "unknown" | "Unknown";
