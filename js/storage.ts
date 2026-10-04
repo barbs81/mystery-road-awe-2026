@@ -1,0 +1,44 @@
+import { state } from "./state.js";
+
+const STORAGE_KEY_BOOKMARKS = "remotion_bookmarks";
+const STORAGE_KEY_NOTES = "remotion_notes";
+
+export function saveBookmarksToStorage(): void {
+  localStorage.setItem(STORAGE_KEY_BOOKMARKS, JSON.stringify(state.bookmarks));
+}
+
+export function loadBookmarksFromStorage(): void {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_BOOKMARKS);
+    const parsed = raw ? JSON.parse(raw) : [];
+    state.bookmarks = Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.warn("Could not read stored bookmarks, starting empty", err);
+    state.bookmarks = [];
+  }
+}
+
+export function saveNoteForEvidence(evidenceId: string, text: string): void {
+  state.notesStore[evidenceId] = text;
+  localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(state.notesStore));
+}
+
+export function loadNoteForEvidence(evidenceId: string): string {
+  return state.notesStore[evidenceId] || "";
+}
+
+export function loadNotesFromStorage(): void {
+  const raw = localStorage.getItem(STORAGE_KEY_NOTES);
+  if (!raw) {
+    state.notesStore = {};
+    return;
+  }
+
+  state.notesStore = JSON.parse(raw) as Record<string, string>;
+}
+
+export function loadNoteAsync(evidenceId: string): Promise<string> {
+  return new Promise((resolve) => {
+    resolve(state.notesStore[evidenceId] || "");
+  });
+}

@@ -1,0 +1,35 @@
+{
+  "name": "mystery-road-awe-2026",
+  "version": "1.0.0",
+  "description": "Mystery Road case investigation web application for Advanced Web Engineering",
+  "keywords": [
+    "mystery-road",
+    "web-development",
+    "advanced-web-engineering"
+  ],
+  "repository": {
+    "type": "git",
+    "url": " "
+  },
+  "license": "ISC",
+  "author": "Barbara",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.9",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  }
+}
