@@ -56,23 +56,22 @@ LocationCard — displays a location and its contents.
 TimelineEventCard — displays a timeline event.
 They use the existing Person, Location, and TimelineEvent types from types.ts and render data using JSX rather than manual DOM manipulation.
 
-- [X] Build at least one component that takes `children` (composition) rather than a data prop, and use it in a real place in the app (e.g. a generic card/panel wrapper).
+- [x] Build at least one component that takes `children` (composition) rather than a data prop, and use it in a real place in the app (e.g. a generic card/panel wrapper).
 
 Composition with children:
 Created a reusable Panel component with typed props:
 type PanelProps = {
-  title: string;
-  children: ReactNode;
+title: string;
+children: ReactNode;
 };
 
 Panel is used in the People & Locations and Timeline views. It receives its inner content through children, allowing it to wrap different content such as people cards, location cards, and timeline events.
 
 This demonstrates component composition and reuse.
 
-
 **Questions** (depend on the tasks above)
 
-- [X] Show one JSX expression in your code that embeds a JavaScript value or expression (not just static markup). For example `{person.name}` or a computed value. What can and can't go inside `{...}` in JSX?
+- [x] Show one JSX expression in your code that embeds a JavaScript value or expression (not just static markup). For example `{person.name}` or a computed value. What can and can't go inside `{...}` in JSX?
 
 One JSX expression in the code is in the PersonCard component:
 <h3>{person.name}</h3>
@@ -121,16 +120,16 @@ Instead, render a property:
 
 In short, JSX curly braces allow JavaScript expressions, not JavaScript statements.
 
-- [X] For one component's typed props: what would TypeScript catch if you passed the wrong shape of data to it? Demonstrate a real type error by passing something wrong on purpose.
+- [x] For one component's typed props: what would TypeScript catch if you passed the wrong shape of data to it? Demonstrate a real type error by passing something wrong on purpose.
 
 For PersonCard, the props are explicitly typed:
 
 type PersonCardProps = {
-  person: Person;
+person: Person;
 };
 
 function PersonCard({ person }: PersonCardProps) {
-  return <h3>{person.name}</h3>;
+return <h3>{person.name}</h3>;
 }
 
 The Person type requires all of these properties:
@@ -147,7 +146,7 @@ avatar
 To demonstrate a real type error, temporarily add this somewhere in a component:
 
 <PersonCard
-  person={{
+person={{
     name: "Patch Vector",
   }}
 />
@@ -162,7 +161,7 @@ This happens because the object passed to person does not have the complete shap
 TypeScript would also catch a property with the wrong type:
 
 <PersonCard
-  person={{
+person={{
     id: "P01",
     name: "Patch Vector",
     role: "Engineer",
@@ -178,7 +177,7 @@ Here, responsibilities should be a string[], but a single string was supplied. T
 
 Type 'string' is not assignable to type 'string[]'
 
-- [X] What's the difference between passing data as a named prop versus passing it as `children`? Why did you choose `children` for the component you built with it?
+- [x] What's the difference between passing data as a named prop versus passing it as `children`? Why did you choose `children` for the component you built with it?
 
 A named prop passes a specific piece of data to a component using an explicit property name:
 <PersonCard person={person} />
@@ -204,19 +203,19 @@ children is different. It represents whatever JSX is placed between the componen
 The Panel component receives the inner JSX through its children prop:
 
 type PanelProps = {
-  title: string;
-  children: ReactNode;
+title: string;
+children: ReactNode;
 };
 
 It renders that content like this:
 
 function Panel({ title, children }: PanelProps) {
-  return (
-    <section className="dashboard-panel">
-      <h3>{title}</h3>
-      {children}
-    </section>
-  );
+return (
+<section className="dashboard-panel">
+<h3>{title}</h3>
+{children}
+</section>
+);
 }
 
 Why children was chosen for Panel
@@ -242,8 +241,7 @@ So:
 Use a named prop when a component expects a specific piece of data.
 Use children when a component wraps or composes arbitrary JSX content.
 
-
-- [X] Why does direct DOM manipulation (as the old vanilla `app.js` did constantly, e.g. `innerHTML`, `classList.add/remove`, manually building elements) conflict with React's rendering model? What assumption does React make about who "owns" the DOM that direct manipulation breaks?
+- [x] Why does direct DOM manipulation (as the old vanilla `app.js` did constantly, e.g. `innerHTML`, `classList.add/remove`, manually building elements) conflict with React's rendering model? What assumption does React make about who "owns" the DOM that direct manipulation breaks?
 
 Direct DOM manipulation conflicts with React because both the vanilla code and React try to control the same parts of the page.
 
