@@ -222,14 +222,42 @@ type TimelineEventCardProps = {
   event: TimelineEvent;
 };
 
+//Assignment 4 Task 2
+//The rendered CSS class depends on the event’s certainty:
+//confirmed → badge-reviewed
+//reported → badge-flagged
+//contradictory → badge-critical
+//The mapping is also type-safe because Record<TimelineEvent["certainty"], string> requires a class for every allowed certainty value.
+//This completes the second real conditional case for Task A and uses a lookup/mapping technique for Task B.
+
+//Open the Timeline route.
+//Confirm that timeline events appear.
+//Inspect the badges:
+//Confirmed events should use the reviewed style.
+//Reported events should use the flagged style.
+//Contradictory events should use the critical style.
+//The empty state can be demonstrated by temporarily changing the TimelineView call in RouteContent to:
+//return <TimelineView events={[]} />;
+//Then the page should display:
+//No timeline events loaded yet.
+
 function TimelineEventCard({ event }: TimelineEventCardProps) {
+  const certaintyBadgeClasses: Record<TimelineEvent["certainty"], string> = {
+    confirmed: "badge-reviewed",
+    reported: "badge-flagged",
+    contradictory: "badge-critical",
+  };
+
   return (
     <article className={`timeline-event certainty-${event.certainty}`}>
       <div className="timeline-time">
         {formatDate(event.time)} &middot;{" "}
-        <span className={`badge badge-${event.certainty}`}>
+        <span className={`badge ${certaintyBadgeClasses[event.certainty]}`}>
           {event.certainty}
         </span>
+        {/*<span className={`badge badge-${event.certainty}`}>
+        {event.certainty}
+        </span>*/}
       </div>
 
       <h3>{event.title}</h3>
@@ -302,6 +330,16 @@ function PeopleLocationsView({ people, locations }: PeopleLocationsViewProps) {
 type TimelineViewProps = {
   events: TimelineEvent[];
 };
+
+//Assignment 4 Task 2
+/*{events.length === 0 ? (
+  <p>No timeline events loaded yet.</p>
+) : (
+  events.map((event) => (
+    <TimelineEventCard key={event.id} event={event} />
+  ))
+)}*/
+//This renders either the empty message or the timeline event list.
 
 function TimelineView({ events }: TimelineViewProps) {
   return (

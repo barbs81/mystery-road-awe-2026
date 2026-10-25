@@ -304,12 +304,108 @@ The long-term solution would be to let React fully own the migrated views and re
 
 **Tasks**
 
-- [ ] Implement at least two real conditional-rendering cases in the views you're migrating. For example: an empty state (e.g. "no timeline events match" if applicable), and a state-dependent style/label (e.g. the active People/Locations tab, or a certainty badge's variant on a timeline event).
-- [ ] Use at least two different conditional-rendering techniques (e.g. a ternary, `&&`, early-return, or a lookup/mapping function) and be ready to justify which you used where.
+- [x] Implement at least two real conditional-rendering cases in the views you're migrating. For example: an empty state (e.g. "no timeline events match" if applicable), and a state-dependent style/label (e.g. the active People/Locations tab, or a certainty badge's variant on a timeline event).
+
+The TimelineView already had an empty-state condition:
+
+{events.length === 0 ? (
+  <p>No timeline events loaded yet.</p>
+) : (
+  events.map((event) => (
+    <TimelineEventCard key={event.id} event={event} />
+  ))
+)}
+
+This was already a valid conditional-rendering case because the output changes depending on whether the events array is empty.
+
+If there are no events, it shows a message.
+If events exist, it renders the timeline event cards.
+
+What I changed
+I added certainty-dependent rendering to TimelineEventCard.
+The event certainty is mapped to a CSS badge class:
+const certaintyBadgeClasses: Record<
+TimelineEvent["certainty"],
+string
+
+> = {
+> confirmed: "badge-reviewed",
+> reported: "badge-flagged",
+> contradictory: "badge-critical",
+> };
+
+The selected class is then rendered dynamically:
+
+<span className={`badge ${certaintyBadgeClasses[event.certainty]}`}>
+{event.certainty}
+</span>
+
+This means:
+
+confirmed uses the reviewed styling.
+reported uses the flagged styling.
+contradictory uses the critical styling.
+The mapping is type-safe because it uses the allowed values from TimelineEvent["certainty"].
+
+- [x] Use at least two different conditional-rendering techniques (e.g. a ternary, `&&`, early-return, or a lookup/mapping function) and be ready to justify which you used where.
+
+1. Ternary expression
+   Used for the timeline empty state:
+
+events.length === 0 ? (
+  <p>No timeline events loaded yet.</p>
+) : (
+  events.map(...)
+)
+
+A ternary was suitable because there are exactly two possible outcomes:
+
+Empty list
+Non-empty list
+It keeps the two alternative render branches together and makes the condition easy to understand.
+
+2. Lookup mapping
+
+Used for the certainty-dependent badge class:
+certaintyBadgeClasses[event.certainty]
+
+A lookup mapping was suitable because each known certainty value has a corresponding class. It avoids a long chain of if statements or nested ternaries and makes the relationship between values and styles clear.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Show one place where you used `condition && <Component />}` instead of a ternary. What would go wrong if `condition` were a number like `0` instead of a boolean and does that risk apply to your actual code?
+- [x] Show one place where you used `condition && <Component />}` instead of a ternary. What would go wrong if `condition` were a number like `0` instead of a boolean and does that risk apply to your actual code?
+
+In the current React code, I did not use condition && <Component />. The conditional rendering currently uses:
+
+A ternary for the empty timeline state.
+A lookup mapping for certainty badge classes.
+Early route checks such as if (currentRoute === "dashboard").
+Therefore, there is no real && example to show without adding one.
+
+A suitable hypothetical example would be:
+{events.length > 0 && <p>Timeline events are available.</p>}
+
+Here, events.length > 0 is always a boolean:
+
+Here, events.length > 0 is always a boolean:
+
+true renders the paragraph.
+false renders nothing.
+The important risk is that && returns one of its operands. If the condition is the number 0:
+{events.length && <TimelineEventList events={events} />}
+
+and events.length is 0, React may render the number 0 visibly instead of rendering nothing.
+
+A safer version would be:
+{events.length > 0 && <TimelineEventList events={events} />}
+
+Now the condition is explicitly boolean.
+
+This risk does not apply to the current code because:
+events.length === 0
+
+is used in a ternary, and the comparison always produces true or false. Also, no current && expression uses a number directly as its condition.
+
 - [ ] Why might returning `null` from a component be preferable to returning an empty `<div>` in some cases? Did you use either, and why?
 
 ---
