@@ -87,7 +87,6 @@ function RouteContent({ currentRoute }: { currentRoute: string }) {
   );
 }
 
-
 function Dashboard() {
   const reviewedCount = state.allEvidence.filter(
     (evidence) => evidence.status.toLowerCase() === "reviewed",
