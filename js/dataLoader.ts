@@ -20,6 +20,10 @@ import type {
   TimelineEvent,
 } from "./types.js";
 
+function notifyDataChanged(): void {
+  window.dispatchEvent(new Event("appdatachange"));
+}
+
 function showLoadingOverlay(msg: string): void {
   const overlay = document.getElementById("loadingOverlay");
   const text = document.getElementById("loadingText");
@@ -50,6 +54,7 @@ async function loadCorePeopleAndLocations(): Promise<void> {
 
   hideLoadingStep();
   renderDashboard();
+  notifyDataChanged();
   populateAllDropdowns();
 }
 
@@ -63,6 +68,7 @@ async function loadEvidenceData(): Promise<void> {
 
     applyStoredBookmarkFlags();
     renderDashboard();
+    notifyDataChanged();
     populateAllDropdowns();
     if (state.currentPage === "evidence") renderEvidenceList();
   } catch (err) {
@@ -80,6 +86,7 @@ async function loadTimelineData(): Promise<void> {
     console.log("TIMELINE FINISHED");
 
     renderDashboard();
+    notifyDataChanged();
     if (state.currentPage === "timeline") renderTimeline();
     populateAllDropdowns();
   } catch (err) {

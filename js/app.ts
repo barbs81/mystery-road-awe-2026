@@ -10,6 +10,7 @@ import {
   loadNotesFromStorage,
   loadNoteAsync,
 } from "./storage.js";
+import { saveHypothesis } from "./views/workspace.js";
 import { navigateTo, handleHashChange } from "./navigation.js";
 import {
   renderEvidenceList,
@@ -93,12 +94,20 @@ function setupEventListeners(): void {
   const confidenceValue = document.getElementById(
     "hypConfidenceValue",
   ) as HTMLElement | null;
+
   confidenceSlider?.addEventListener("input", (event) => {
     const target = event.target as HTMLInputElement | null;
     if (confidenceValue && target) {
       confidenceValue.textContent = target.value;
     }
   });
+
+  // Save hypothesis
+  const saveHypothesisBtn = document.getElementById(
+    "saveHypothesisBtn",
+  ) as HTMLButtonElement | null;
+
+  saveHypothesisBtn?.addEventListener("click", saveHypothesis);
 }
 
 async function initApp(): Promise<void> {
