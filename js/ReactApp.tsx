@@ -211,7 +211,6 @@ function LocationCard({ location }: LocationCardProps) {
   );
 }
 
-
 //Assignment 4 Task 1
 //Explicitly typed props through TimelineEventCardProps
 //Reuse of the existing TimelineEvent type
@@ -239,11 +238,10 @@ function TimelineEventCard({ event }: TimelineEventCardProps) {
   );
 }
 
-
 //Assignment 4 Task 1
 //This component is a reusable panel with a title and children content.
 //Panel owns the common panel structure
-//The content inside the panel is supplied by the parent component. 
+//The content inside the panel is supplied by the parent component.
 //This makes Panel reusable for different content instead of requiring a specific data object.
 
 type PanelProps = {
@@ -270,16 +268,12 @@ function Panel({ title, children }: PanelProps) {
 //The empty timeline message uses a conditional expression.
 //No innerHTML, createElement, appendChild, or new state is used.
 
-
 type PeopleLocationsViewProps = {
   people: Person[];
   locations: Location[];
 };
 
-function PeopleLocationsView({
-  people,
-  locations,
-}: PeopleLocationsViewProps) {
+function PeopleLocationsView({ people, locations }: PeopleLocationsViewProps) {
   return (
     <main className="app-main react-route-content">
       <section className="react-view" aria-labelledby="people-locations-title">
