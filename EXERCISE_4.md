@@ -555,7 +555,64 @@ because indexes can change when items are inserted, removed, or reordered. A sta
 
 **Tasks**
 
-- [ ] Deliberately use `key={index}` in one throwaway example, then demonstrate (e.g. by reordering or filtering the underlying array) a case where it produces a visibly wrong result, before replacing it with a real stable id.
+- [x] Deliberately use `key={index}` in one throwaway example, then demonstrate (e.g. by reordering or filtering the underlying array) a case where it produces a visibly wrong result, before replacing it with a real stable id.
+
+Step1: Create a throwaway row component
+In ReactApp.tsx, added this:
+type KeyDemoRowProps = {
+label: string;
+};
+
+function KeyDemoRow({ label }: KeyDemoRowProps) {
+return (
+<li>
+<input defaultValue={label} />
+</li>
+);
+}
+
+Step2: Add a temporary list that uses key={index} .. Add this after the KeyDemoRow
+type IndexKeyDemoProps = {
+reordered: boolean;
+};
+
+function IndexKeyDemo({ reordered }: IndexKeyDemoProps) {
+const labels = ["First item", "Second item", "Third item"];
+const visibleLabels = reordered ? [...labels].reverse() : labels;
+
+return (
+<section className="dashboard-panel">
+<h3>Temporary key demo</h3>
+<p>
+Type into the inputs, then navigate between Dashboard and Timeline.
+The list order changes while the component stays mounted.
+</p>
+
+      <ul>
+        {visibleLabels.map((label, index) => (
+          <KeyDemoRow key={index} label={label} />
+        ))}
+      </ul>
+    </section>
+
+);
+}
+
+Step3: Mount the temporary demo so it stays mounted
+The demo must remain mounted while the route changes. Otherwise React destroys and recreates it, and the key problem will not be visible.
+
+That mismatch demonstrates the problem with key={index}: React reuses the input DOM nodes by their positions instead of associating them with the data item.
+
+Step 4: replace
+<KeyDemoRow key={index} label={label} />
+with
+<KeyDemoRow key={label} label={label} />
+Remove index from the .map() callback
+{visibleLabels.map((label) => (
+<KeyDemoRow key={label} label={label} />
+))}
+
+This uses the item’s stable identity instead of its array position.
 
 **Questions** (depend on the tasks above)
 

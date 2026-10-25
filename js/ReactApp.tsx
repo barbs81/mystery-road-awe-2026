@@ -361,6 +361,61 @@ function TimelineView({ events }: TimelineViewProps) {
   );
 }
 
+//Assignment 4 Task 4
+//Create a small throw away component
+//This uses an uncontrolled input with defaultValue.
+//It is useful for demonstrating the key problem because React may reuse the existing DOM input when the list order changes.
+type KeyDemoRowProps = {
+  label: string;
+};
+
+function KeyDemoRow({ label }: KeyDemoRowProps) {
+  return (
+    <li>
+      <strong>Data item: {label}</strong>
+      <input defaultValue={label} />
+    </li>
+  );
+}
+
+//Assignment 4 Task 4
+//Without the query parameter, the list renders in this order:
+//First item
+//Second item
+//Third item
+//With ?reordered, it renders:
+//Third item
+//Second item
+//First item
+//The list deliberately uses: key={index}
+type IndexKeyDemoProps = {
+  reordered: boolean;
+};
+
+function IndexKeyDemo({ reordered }: IndexKeyDemoProps) {
+  const labels = ["First item", "Second item", "Third item"];
+  const visibleLabels = reordered ? [...labels].reverse() : labels;
+
+  return (
+    <section className="dashboard-panel">
+      <h3>Temporary key demo</h3>
+      <p>
+        Type into the inputs, then navigate between Dashboard and Timeline. The
+        list order changes while the component stays mounted.
+      </p>
+
+      <ul>
+        {/*{visibleLabels.map((label, index) => (
+          <KeyDemoRow key={index} label={label} />
+        ))}*/}
+        {visibleLabels.map((label) => (
+          <KeyDemoRow key={label} label={label} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Dashboard() {
   const reviewedCount = state.allEvidence.filter(
     (evidence) => evidence.status.toLowerCase() === "reviewed",
@@ -490,10 +545,19 @@ export default function App() {
     legacyContent?.classList.add("react-dashboard-hidden");
   }, [currentRoute]);
 
+  /*
   return (
     <>
       <Header currentRoute={currentRoute} />
       <RouteContent currentRoute={currentRoute} />
+    </>
+  );*/
+
+  return (
+    <>
+      <Header currentRoute={currentRoute} />
+      <RouteContent currentRoute={currentRoute} />
+      <IndexKeyDemo reordered={currentRoute !== "dashboard"} />
     </>
   );
 }
