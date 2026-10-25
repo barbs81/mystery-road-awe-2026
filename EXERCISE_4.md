@@ -406,7 +406,45 @@ events.length === 0
 
 is used in a ternary, and the comparison always produces true or false. Also, no current && expression uses a number directly as its condition.
 
-- [ ] Why might returning `null` from a component be preferable to returning an empty `<div>` in some cases? Did you use either, and why?
+- [x] Why might returning `null` from a component be preferable to returning an empty `<div>` in some cases? Did you use either, and why?
+
+Returning null is preferable when a component should render nothing at all.
+
+For example:
+
+function OptionalNotice({ visible }: { visible: boolean }) {
+if (!visible) {
+return null;
+}
+
+return <p>Notice available.</p>;
+}
+
+Returning null means React does not add anything to the DOM.
+
+An empty <div> would still create an element:
+
+return <div />;
+
+That can create unnecessary markup, affect layout or CSS selectors, and leave an empty container in the DOM.
+
+In my current implementation, I did not use return null for the migrated People & Locations or Timeline views. I used a ternary in TimelineView to render either the empty-state message or the timeline events:
+
+{events.length === 0 ? (
+  <p>No timeline events loaded yet.</p>
+) : (
+  events.map((event) => (
+    <TimelineEventCard key={event.id} event={event} />
+  ))
+)}
+
+This is more appropriate because the empty state needs to show a meaningful message. Returning null would hide the content completely and would not tell the user why no events are visible.
+
+The important distinction is:
+
+Use null when no UI should exist.
+Use an empty-state element when the user should receive feedback, such as “No timeline events loaded yet.”
+Avoid an empty <div> unless a real structural wrapper is needed.
 
 ---
 
@@ -414,11 +452,102 @@ is used in a ternary, and the comparison always produces true or false. Also, no
 
 **Tasks**
 
-- [ ] Render the people list, the locations list, and the timeline events list, each as a mapped collection of components, each with a proper `key` prop.
+- [x] Render the people list, the locations list, and the timeline events list, each as a mapped collection of components, each with a proper `key` prop.
+
+People List
+The people array is mapped into PersonCard components:
+{people.map((person) => (
+<PersonCard key={person.id} person={person} />
+))}
+
+Collection: people
+Component: PersonCard
+Key: person.id
+
+Locations list
+The locations array is mapped into LocationCard components:
+{locations.map((location) => (
+<LocationCard key={location.id} location={location} />
+))}
+
+Collection: locations
+Component: LocationCard
+Key: location.id
+
+Timeline events list
+The timeline array is mapped into TimelineEventCard components:
+{events.map((event) => (
+<TimelineEventCard key={event.id} event={event} />
+))}
+
+Collection: events
+Component: TimelineEventCard
+Key: event.id
+
+Why these keys are appropriate
+The keys use the stable IDs from the data rather than array indexes. React uses keys to identify individual items between renders, so stable IDs help React preserve the correct component identity if the list changes.
+
+For example, this would be less suitable:
+{people.map((person, index) => (
+<PersonCard key={index} person={person} />
+))}
+
+The index can change when items are inserted, removed, or reordered. The person’s ID remains associated with the same person.
+
+You can verify it in the browser by opening:
+
+#people for the people and locations lists
+#timeline for the timeline events list
 
 **Questions** (depend on the tasks above)
 
-- [ ] What does React actually use `key` for internally?
+- [x] What does React actually use `key` for internally?
+
+React uses key to identify the identity of each item in a rendered collection.
+
+When React renders a list, it compares the previous list with the new list. The key tells React which item in the new list corresponds to which item in the previous list.
+
+For example:
+{people.map((person) => (
+<PersonCard key={person.id} person={person} />
+))}
+
+React uses the key to determine whether a list item should be:
+
+Reused and updated
+Moved
+Removed
+Created as a new item
+Keys are mainly used during React’s reconciliation process. They help React preserve the correct component and DOM identity when a collection changes.
+
+For example, if the list changes from:
+P01, P02, P03
+to:
+P02, P03, P04
+
+React can determine that:
+
+P01 was removed
+P02 and P03 should be preserved
+P04 is new
+Without stable keys, React may incorrectly associate the old DOM or component state with the wrong data item.
+
+A key is not passed to the component as an ordinary prop. For example, this component cannot access key:
+
+function PersonCard({ person, key }: PersonCardProps) {
+// key is not available here as a normal prop
+}
+
+If the component needs the identifier itself, pass it separately:
+
+<PersonCard key={person.id} person={person} personId={person.id} />
+
+Stable IDs are better than array indexes:
+key={person.id}
+is preferable to:
+key={index}
+
+because indexes can change when items are inserted, removed, or reordered. A stable key lets React preserve the identity of the actual item rather than its temporary position in the array.
 
 ---
 
@@ -454,9 +583,7 @@ is used in a ternary, and the comparison always produces true or false. Also, no
 
 **Tasks**
 
-- [ ] Reorganize your React source into a feature-oriented structure (e.g. grouping by
-      `people-locations/`, `timeline/`, `dashboard/`, shared `components/`, rather than one flat
-      folder of files). Including the Dashboard and shell from Exercise 3.
+- [ ] Reorganize your React source into a feature-oriented structure (e.g. grouping by `people-locations/`, `timeline/`, `dashboard/`, shared `components/`, rather than one flat folder of files). Including the Dashboard and shell from Exercise 3.
 - [ ] Document the structure you landed on (a short `ARCHITECTURE.md` section or README snippet is enough) and the rule you used to decide what's "shared" versus "feature-local."
 
 **Questions** (depend on the tasks above)
@@ -483,15 +610,12 @@ is used in a ternary, and the comparison always produces true or false. Also, no
 
 **Tasks**
 
-- [ ] Install a routing library (React Router or an equivalent of your choice, justified) and
-      replace the shell's placeholder navigation from Exercise 3 with real routes for at least Dashboard, People & Locations, and Timeline.
-- [ ] Convert the People/Locations tab toggle from local component state into two real,
-      navigable, bookmarkable routes (e.g. `/team/people` and `/team/locations`) instead of a click handler that only changes what's shown without changing the URL.
+- [ ] Install a routing library (React Router or an equivalent of your choice, justified) and replace the shell's placeholder navigation from Exercise 3 with real routes for at least Dashboard, People & Locations, and Timeline.
+- [ ] Convert the People/Locations tab toggle from local component state into two real, navigable, bookmarkable routes (e.g. `/team/people` and `/team/locations`) instead of a click handler that only changes what's shown without changing the URL.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why does making the People/Locations tab a real route (versus keeping it as internal
-      component state) matter for the user? Name a concrete capability the user gains.
+- [ ] Why does making the People/Locations tab a real route (versus keeping it as internal component state) matter for the user? Name a concrete capability the user gains.
 - [ ] What does your router do when the URL doesn't match any route you've defined? Compare this to how the vanilla app's `handleHashChange()` fell back to the dashboard for an invalid hash.
 
 ---
