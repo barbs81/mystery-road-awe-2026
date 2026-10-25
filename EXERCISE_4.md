@@ -48,71 +48,257 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 - [x] Build at least 3 small components for the People & Locations or Timeline views using JSX, each with an explicitly typed props interface/type (no untyped or `any` props).
 
-- A sensible set of three components for this project would be:
+Typed JSX components:
+Created and used three React function components with explicitly typed props:
 
-PeopleLocationsView
-├── PersonCard
-└── LocationCard
+PersonCard — displays a person’s details.
+LocationCard — displays a location and its contents.
+TimelineEventCard — displays a timeline event.
+They use the existing Person, Location, and TimelineEvent types from types.ts and render data using JSX rather than manual DOM manipulation.
 
-TimelineView
-└── TimelineEventCard
+- [X] Build at least one component that takes `children` (composition) rather than a data prop, and use it in a real place in the app (e.g. a generic card/panel wrapper).
 
-The three small reusable components could be:
+Composition with children:
+Created a reusable Panel component with typed props:
+type PanelProps = {
+  title: string;
+  children: ReactNode;
+};
 
-PersonCard
+Panel is used in the People & Locations and Timeline views. It receives its inner content through children, allowing it to wrap different content such as people cards, location cards, and timeline events.
 
-Receives one Person object as a prop.
-Displays the person’s name, role, speciality, responsibilities, and statement.
+This demonstrates component composition and reuse.
 
-LocationCard
-
-Receives one Location object as a prop.
-Displays the location name, description, and contained items.
-TimelineEventCard
-
-Receives one TimelineEvent object as a prop.
-Displays the date, title, description, certainty, and related information.
-
-The existing types are already available in types.ts:
-Person
-Location
-TimelineEvent
-
-Files likely to be changed
-
-1. ReactApp.tsx
-   This is currently where the React components are defined. For the first Demo, this is the simplest place to add the three components and use them.
-
-Later, in Demo 6, we may move them into a feature-oriented folder structure. For now, keeping them in this file makes the component relationships easier to see.
-
-2. types.ts
-   This already contains the required interfaces, so it probably does not need to be changed for Demo 1.
-
-We should reuse the existing types rather than creating duplicate versions.
-
-3. styles.css
-   This may need small styling additions if the new React cards use class names that do not already exist.
-
-Files that should not be changed yet
-For this task, should not modify:
-
-views/people.ts
-views/timeline.ts
-dataLoader.ts
-state.ts
-
-Those are part of the old vanilla implementation or shared loading architecture. Assignment 4 specifically asks to build the React components without relying on manual DOM manipulation.
-
-Summary of steps completed:
-
-- [ ] Build at least one component that takes `children` (composition) rather than a data prop, and use it in a real place in the app (e.g. a generic card/panel wrapper).
 
 **Questions** (depend on the tasks above)
 
-- [ ] Show one JSX expression in your code that embeds a JavaScript value or expression (not just static markup). For example `{person.name}` or a computed value. What can and can't go inside `{...}` in JSX?
-- [ ] For one component's typed props: what would TypeScript catch if you passed the wrong shape of data to it? Demonstrate a real type error by passing something wrong on purpose.
-- [ ] What's the difference between passing data as a named prop versus passing it as `children`? Why did you choose `children` for the component you built with it?
-- [ ] Why does direct DOM manipulation (as the old vanilla `app.js` did constantly, e.g. `innerHTML`, `classList.add/remove`, manually building elements) conflict with React's rendering model? What assumption does React make about who "owns" the DOM that direct manipulation breaks?
+- [X] Show one JSX expression in your code that embeds a JavaScript value or expression (not just static markup). For example `{person.name}` or a computed value. What can and can't go inside `{...}` in JSX?
+
+One JSX expression in the code is in the PersonCard component:
+<h3>{person.name}</h3>
+{person.name} embeds the JavaScript value of the person’s name inside the JSX heading.
+Another example is:
+<p>
+  <strong>Speciality:</strong> {person.speciality}
+</p>
+A computed expression is also used here:
+<section className={`react-view`}>
+and in the timeline component:
+<div className={`timeline-event certainty-${event.certainty}`}>
+The value of event.certainty is inserted into the CSS class name.
+Inside JSX curly braces, you can use JavaScript expressions that produce a value, such as:
+{person.name}
+{event.title}
+{people.length}
+{formatDate(event.time)}
+{condition ? "Yes" : "No"}
+{items.map((item) => <li key={item}>{item}</li>)}
+
+You can also use:
+
+Variables
+Property access
+Function calls
+Arithmetic or other computed expressions
+Ternary expressions
+Logical expressions
+Array .map() expressions that return JSX
+
+You cannot put statements directly inside JSX curly braces, such as:
+{if (person.name) { ... }}
+or
+{for (const person of people) { ... }}
+
+Statements such as if and for must be handled outside the returned JSX, or replaced with JSX-compatible expressions such as a ternary, logical &&, or .map().
+
+You also should not place ordinary object literals directly into JSX as visible content, because React cannot render plain objects directly:
+
+{person} // not valid visible output
+
+Instead, render a property:
+
+{person.name}
+
+In short, JSX curly braces allow JavaScript expressions, not JavaScript statements.
+
+- [X] For one component's typed props: what would TypeScript catch if you passed the wrong shape of data to it? Demonstrate a real type error by passing something wrong on purpose.
+
+For PersonCard, the props are explicitly typed:
+
+type PersonCardProps = {
+  person: Person;
+};
+
+function PersonCard({ person }: PersonCardProps) {
+  return <h3>{person.name}</h3>;
+}
+
+The Person type requires all of these properties:
+
+id
+name
+role
+speciality
+responsibilities
+statement
+background
+avatar
+
+To demonstrate a real type error, temporarily add this somewhere in a component:
+
+<PersonCard
+  person={{
+    name: "Patch Vector",
+  }}
+/>
+
+TypeScript will report an error similar to:
+Type '{ name: string; }' is missing the following properties
+from type 'Person':
+id, role, speciality, responsibilities, statement, background, avatar
+
+This happens because the object passed to person does not have the complete shape required by the Person interface.
+
+TypeScript would also catch a property with the wrong type:
+
+<PersonCard
+  person={{
+    id: "P01",
+    name: "Patch Vector",
+    role: "Engineer",
+    speciality: "Robotics",
+    responsibilities: "Safety testing",
+    statement: "Example statement",
+    background: "Example background",
+    avatar: "assets/people/patch-vector.png",
+  }}
+/>
+
+Here, responsibilities should be a string[], but a single string was supplied. TypeScript would report:
+
+Type 'string' is not assignable to type 'string[]'
+
+- [X] What's the difference between passing data as a named prop versus passing it as `children`? Why did you choose `children` for the component you built with it?
+
+A named prop passes a specific piece of data to a component using an explicit property name:
+<PersonCard person={person} />
+
+Here, person is a named prop. PersonCard expects that prop to be a Person object:
+
+The component then uses the data as:
+
+person.name
+person.role
+person.speciality
+
+children is different. It represents whatever JSX is placed between the component’s opening and closing tags:
+
+<Panel title="People">
+  <div className="people-grid">
+    {people.map((person) => (
+      <PersonCard key={person.id} person={person} />
+    ))}
+  </div>
+</Panel>
+
+The Panel component receives the inner JSX through its children prop:
+
+type PanelProps = {
+  title: string;
+  children: ReactNode;
+};
+
+It renders that content like this:
+
+function Panel({ title, children }: PanelProps) {
+  return (
+    <section className="dashboard-panel">
+      <h3>{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+Why children was chosen for Panel
+
+Panel is a generic layout component. It provides the common structure:
+
+A panel container
+A heading
+A consistent CSS class
+But it should not know whether its content is:
+
+Person cards
+Location cards
+Timeline event cards
+An empty-state message
+Any other JSX content
+Using children lets the parent supply the exact content while Panel controls only the shared wrapper structure.
+
+In contrast, PersonCard uses a named person prop because it is specifically designed to display one Person object.
+
+So:
+
+Use a named prop when a component expects a specific piece of data.
+Use children when a component wraps or composes arbitrary JSX content.
+
+
+- [X] Why does direct DOM manipulation (as the old vanilla `app.js` did constantly, e.g. `innerHTML`, `classList.add/remove`, manually building elements) conflict with React's rendering model? What assumption does React make about who "owns" the DOM that direct manipulation breaks?
+
+Direct DOM manipulation conflicts with React because both the vanilla code and React try to control the same parts of the page.
+
+The old vanilla application directly changed the DOM using methods such as:
+
+element.innerHTML = html;
+element.classList.add("active");
+element.classList.remove("hidden");
+document.createElement("div");
+element.appendChild(child);
+
+React works differently. React treats JSX as a description of what the UI should look like based on the current props and state:
+
+<PersonCard person={person} />
+
+React then creates and updates the corresponding DOM elements itself.
+
+React’s assumption
+React assumes that React owns the DOM inside its root element:
+
+<div id="react-root"></div>
+
+React expects to be the authority responsible for deciding:
+
+Which elements exist
+Which elements should be removed
+What text and attributes they contain
+Which classes are applied
+When the UI should be updated
+When code outside React directly changes those elements, React’s internal representation can become inconsistent with the actual DOM.
+
+For example, if vanilla code does this:
+
+section.classList.remove("active");
+
+but React’s JSX still says the section should be visible, React may later re-render and restore its own version. The result can be:
+
+Changes being overwritten
+Stale or missing content
+Unexpected class names
+Event handlers no longer matching the visible UI
+Parts of the interface disappearing
+
+Similarly, if vanilla code uses:
+
+container.innerHTML = "...";
+
+inside an area React rendered, it replaces React-managed elements behind React’s back. React still assumes those elements are present and may later try to update or remove them.
+
+In this project
+The old vanilla router originally manipulated .view elements using classList.add() and classList.remove(). That caused a real issue when it removed the active class from the React Dashboard section.
+
+The React version now uses a separate react-view class so the vanilla router does not hide React-managed content. This is a transitional solution while the application is being migrated.
+
+The long-term solution would be to let React fully own the migrated views and remove the corresponding vanilla DOM manipulation for those areas. The vanilla code could continue managing views that have not yet been migrated, but the two systems should not both manage the same DOM elements.
 
 ---
 

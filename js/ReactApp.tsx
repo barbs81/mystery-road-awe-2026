@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { state } from "./state.js";
 import { formatDate, getStatusBadgeClass } from "./utils.js";
+import type { Location, Person, TimelineEvent } from "./types.js";
 
 type Route = {
   id: string;
@@ -64,7 +66,7 @@ function Header({ currentRoute }: { currentRoute: string }) {
   );
 }
 
-function RouteContent({ currentRoute }: { currentRoute: string }) {
+/*function RouteContent({ currentRoute }: { currentRoute: string }) {
   if (currentRoute === "dashboard") {
     return <Dashboard />;
   }
@@ -82,6 +84,246 @@ function RouteContent({ currentRoute }: { currentRoute: string }) {
             planned for the next exercise.
           </p>
         </div>
+      </section>
+    </main>
+  );
+}*/
+
+//Assignment 4 Task 1
+//#people now renders PeopleLocationsView.
+//#timeline now renders TimelineView.
+//The views receive data through typed props:
+//people={state.allPeople}
+//locations={state.allLocations}
+//events={state.allTimeline}
+//Evidence and Workspace remain stub pages, as required by the Assignment 4 scope.
+//Dashboard behavior remains unchanged.
+
+function RouteContent({ currentRoute }: { currentRoute: string }) {
+  if (currentRoute === "dashboard") {
+    return <Dashboard />;
+  }
+
+  if (currentRoute === "people") {
+    return (
+      <PeopleLocationsView
+        people={state.allPeople}
+        locations={state.allLocations}
+      />
+    );
+  }
+
+  if (currentRoute === "timeline") {
+    return <TimelineView events={state.allTimeline} />;
+  }
+
+  const route = routes.find(({ id }) => id === currentRoute);
+
+  return (
+    <main className="app-main react-route-content">
+      <section className="react-view" aria-labelledby="stub-page-title">
+        <h2 id="stub-page-title">{route?.label}</h2>
+        <div className="intro-card">
+          <h3>{route?.label} view</h3>
+          <p>
+            This page is ready for the {route?.label.toLowerCase()} features
+            planned for the next exercise.
+          </p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+//Assignment 4 Task 1
+//PersonCardProps explicitly types the component’s props.
+//person must have the complete Person shape from types.ts.
+//JSX embeds values such as {person.name} and {person.role}.
+//The responsibilities are rendered as a collection with .map().
+//Each responsibility has a key.
+//No innerHTML or manual DOM manipulation is used.
+
+type PersonCardProps = {
+  person: Person;
+};
+
+function PersonCard({ person }: PersonCardProps) {
+  return (
+    <article className="person-card">
+      <div className="person-card-header">
+        <img
+          className="person-avatar"
+          src={person.avatar}
+          alt={`Portrait of ${person.name}`}
+        />
+        <div>
+          <h3>{person.name}</h3>
+          <div className="person-role">{person.role}</div>
+        </div>
+      </div>
+
+      <p>
+        <strong>Speciality:</strong> {person.speciality}
+      </p>
+
+      <ul>
+        {person.responsibilities.map((responsibility) => (
+          <li key={responsibility}>{responsibility}</li>
+        ))}
+      </ul>
+
+      <div className="person-statement">&ldquo;{person.statement}&rdquo;</div>
+    </article>
+  );
+}
+
+//Assignment 4 Task 1
+//LocationCardProps explicitly types the component props.
+//The location prop must match the existing Location interface.
+//JSX displays values from the object.
+//The contains array is rendered with .map().
+//Each list item has a stable key.
+//The component uses JSX only and does not manipulate the DOM.
+
+type LocationCardProps = {
+  location: Location;
+};
+
+function LocationCard({ location }: LocationCardProps) {
+  return (
+    <article className="location-card">
+      <h3>
+        {location.id} &mdash; {location.name}
+      </h3>
+
+      <p>{location.description}</p>
+
+      <p>
+        <strong>Contains:</strong>
+      </p>
+
+      <ul>
+        {location.contains.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
+
+//Assignment 4 Task 1
+//Explicitly typed props through TimelineEventCardProps
+//Reuse of the existing TimelineEvent type
+//A computed CSS class using a template literal
+//Rendering a formatted date with the existing formatDate() helper
+//JSX expressions such as {event.title} and {event.description}
+
+type TimelineEventCardProps = {
+  event: TimelineEvent;
+};
+
+function TimelineEventCard({ event }: TimelineEventCardProps) {
+  return (
+    <article className={`timeline-event certainty-${event.certainty}`}>
+      <div className="timeline-time">
+        {formatDate(event.time)} &middot;{" "}
+        <span className={`badge badge-${event.certainty}`}>
+          {event.certainty}
+        </span>
+      </div>
+
+      <h3>{event.title}</h3>
+      <p>{event.description}</p>
+    </article>
+  );
+}
+
+
+//Assignment 4 Task 1
+//This component is a reusable panel with a title and children content.
+//Panel owns the common panel structure
+//The content inside the panel is supplied by the parent component. 
+//This makes Panel reusable for different content instead of requiring a specific data object.
+
+type PanelProps = {
+  title: string;
+  children: ReactNode;
+};
+
+function Panel({ title, children }: PanelProps) {
+  return (
+    <section className="dashboard-panel">
+      <h3>{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+//Assignment 4 Task 1
+//PeopleLocationsViewProps explicitly types two arrays.
+//TimelineViewProps explicitly types the timeline array.
+//The three typed components are now used in real view components.
+//.map() renders collections of cards.
+//Each mapped component has a stable key.
+//Panel receives its content through children.
+//The empty timeline message uses a conditional expression.
+//No innerHTML, createElement, appendChild, or new state is used.
+
+
+type PeopleLocationsViewProps = {
+  people: Person[];
+  locations: Location[];
+};
+
+function PeopleLocationsView({
+  people,
+  locations,
+}: PeopleLocationsViewProps) {
+  return (
+    <main className="app-main react-route-content">
+      <section className="react-view" aria-labelledby="people-locations-title">
+        <h2 id="people-locations-title">People &amp; Locations</h2>
+
+        <Panel title="People">
+          <div className="people-grid">
+            {people.map((person) => (
+              <PersonCard key={person.id} person={person} />
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Locations">
+          <div className="locations-grid">
+            {locations.map((location) => (
+              <LocationCard key={location.id} location={location} />
+            ))}
+          </div>
+        </Panel>
+      </section>
+    </main>
+  );
+}
+
+type TimelineViewProps = {
+  events: TimelineEvent[];
+};
+
+function TimelineView({ events }: TimelineViewProps) {
+  return (
+    <main className="app-main react-route-content">
+      <section className="react-view" aria-labelledby="timeline-title">
+        <h2 id="timeline-title">Timeline</h2>
+
+        <Panel title="Timeline events">
+          {events.length === 0 ? (
+            <p>No timeline events loaded yet.</p>
+          ) : (
+            events.map((event) => (
+              <TimelineEventCard key={event.id} event={event} />
+            ))
+          )}
+        </Panel>
       </section>
     </main>
   );
