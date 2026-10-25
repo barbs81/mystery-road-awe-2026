@@ -87,10 +87,6 @@ function RouteContent({ currentRoute }: { currentRoute: string }) {
   );
 }
 
-type PersonCardProps = {
-  person: Person;
-};
-
 
 function Dashboard() {
   const reviewedCount = state.allEvidence.filter(
