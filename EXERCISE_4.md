@@ -1274,19 +1274,1551 @@ So the split reduces coupling:
 
 - [x] Give one concrete rule you used to decide "this belongs in a presentational component" versus "this belongs in a feature component."
 
+A concrete rule I used was:
+
+> If a component only displays data that it receives through props, it belongs in a presentational component. If it reads application data, calculates derived values, decides what feature content to render, or coordinates several child components, it belongs in a feature/container component.
+
+For example, `TimelineEventCard` is presentational:
+
+```tsx
+function TimelineEventCard({ event }: TimelineEventCardProps) {
+  return (
+    <article>
+      <h3>{event.title}</h3>
+      <p>{event.description}</p>
+    </article>
+  );
+}
+```
+
+It receives one `TimelineEvent` through props and only renders it. It does not know where the data came from or coordinate other parts of the application.
+
+`TimelineView` is a feature component:
+
+```tsx
+function TimelineView({ events }: TimelineViewProps) {
+  return (
+    <Panel title="Timeline events">
+      {events.map((event) => (
+        <TimelineEventCard key={event.id} event={event} />
+      ))}
+    </Panel>
+  );
+}
+```
+
+It coordinates the Timeline feature by:
+
+- Receiving the event collection.
+- Deciding whether to show the empty state.
+- Mapping the collection.
+- Assigning keys.
+- Composing multiple child components.
+
+Similarly, `DashboardContainer` is a feature/container component because it reads from the shared state and calculates values such as the review percentage. `DashboardView` is more presentational because it receives prepared data and renders the layout.
+
+The rule is therefore based on responsibility and data ownership:
+
+- **Presentational:** knows how to display data.
+- **Feature/container:** knows which data to prepare and which components to combine.
+
 ---
 
 ## Demo 6 — Feature-oriented folder structure
 
 **Tasks**
 
-- [ ] Reorganize your React source into a feature-oriented structure (e.g. grouping by `people-locations/`, `timeline/`, `dashboard/`, shared `components/`, rather than one flat folder of files). Including the Dashboard and shell from Exercise 3.
-- [ ] Document the structure you landed on (a short `ARCHITECTURE.md` section or README snippet is enough) and the rule you used to decide what's "shared" versus "feature-local."
+- [x] Reorganize your React source into a feature-oriented structure (e.g. grouping by `people-locations/`, `timeline/`, `dashboard/`, shared `components/`, rather than one flat folder of files). Including the Dashboard and shell from Exercise 3.
+
+Currently, the code is concentrated in ReactApp.tsx and in react-main.tsx, the goal is to create a structure that groups code by responsibility, rather than staying in one flat ReactApp.tsx.
+
+What belongs where:
+app/
+Application-level code:
+
+The main App component
+Route selection
+Header and navigation
+Shell-level behavior
+
+components/
+Reusable UI components that are not specific to one feature:
+
+Panel
+Potentially other generic visual wrappers later
+
+features/dashboard/
+Dashboard-specific components:
+
+DashboardContainer
+DashboardView
+Dashboard cards and sections
+
+features/people-locations/
+People and location-specific components:
+
+PeopleLocationsView
+PersonCard
+LocationCard
+
+features/timeline/
+Timeline-specific components:
+
+TimelineView
+TimelineEventCard
+
+shared/
+Types and helpers reused by multiple features:
+
+Person, Location, TimelineEvent, CaseData
+formatDate
+getStatusBadgeClass
+
+Shared versus feature-local rule
+
+A component belongs in components/ or shared/ if it is generic and can be reused by multiple unrelated features without knowing feature-specific details. A component belongs inside a feature folder if it displays or coordinates data that only makes sense for that feature.
+
+Examples:
+
+Panel is shared because Dashboard, People & Locations, and Timeline all use it.
+PersonCard is feature-local because it specifically knows how to display a Person.
+TimelineEventCard is feature-local because it specifically knows how to display a TimelineEvent.
+formatDate is shared because multiple features can use it.
+DashboardContainer is feature-local because it prepares Dashboard data.
+
+For the reorganization:
+
+Create new .tsx files under js/app/, js/components/, and js/features/.
+Update imports in the moved files.
+Update react-main.tsx if the App import moves.
+Update tsconfig.json only if the existing include pattern does not already cover the new folders.
+Add an architecture section to a documentation file, likely EXERCISE_4.md or a new ARCHITECTURE.md.
+
+##############
+We’ll do this in small, verifiable steps. We will not reorganize everything at once.
+
+## Step 1: Move the shared `Panel` component
+
+`Panel` is used by:
+
+- People & Locations
+- Timeline
+
+Therefore, it is shared UI and belongs in:
+
+```text
+js/components/Panel.tsx
+```
+
+### 1. Create the folder
+
+Inside the project’s `js` folder, create:
+
+```text
+components
+```
+
+The path should be:
+
+```text
+C:\Users\barbs\VS Programs\Advance Web Engineering\Exercise 1\mystery-road-awe-2026\js\components
+```
+
+### 2. Create `Panel.tsx`
+
+Create this file:
+
+```text
+js/components/Panel.tsx
+```
+
+Put this code in it:
+
+```tsx
+import type { ReactNode } from "react";
+
+export type PanelProps = {
+  title: string;
+  children: ReactNode;
+};
+
+export function Panel({ title, children }: PanelProps) {
+  return (
+    <section className="dashboard-panel">
+      <h3>{title}</h3>
+      {children}
+    </section>
+  );
+}
+```
+
+### 3. Remove the old definition
+
+Open `ReactApp.tsx` and remove:
+
+```tsx
+type PanelProps = {
+  title: string;
+  children: ReactNode;
+};
+
+function Panel({ title, children }: PanelProps) {
+  return (
+    <section className="dashboard-panel">
+      <h3>{title}</h3>
+      {children}
+    </section>
+  );
+}
+```
+
+Keep the `ReactNode` import for now only if it is still used elsewhere. If it is no longer used in `ReactApp.tsx`, remove:
+
+```tsx
+import type { ReactNode } from "react";
+```
+
+### 4. Import the shared component
+
+At the top of `ReactApp.tsx`, add:
+
+```tsx
+import { Panel } from "./components/Panel.js";
+```
+
+## Step 2: Move `PersonCard` into the People & Locations feature
+
+`PersonCard` is specific to the People & Locations feature, so it belongs in:
+
+```text
+js/features/people-locations/PersonCard.tsx
+```
+
+### 1. Create the folders
+
+Inside `js`, create:
+
+```text
+features
+```
+
+Inside `features`, create:
+
+```text
+people-locations
+```
+
+The final folder path should be:
+
+```text
+C:\Users\barbs\VS Programs\Advance Web Engineering\Exercise 1\mystery-road-awe-2026\js\features\people-locations
+```
+
+### 2. Create `PersonCard.tsx`
+
+Add this code:
+
+```tsx
+import type { Person } from "../../types.js";
+
+export type PersonCardProps = {
+  person: Person;
+};
+
+export function PersonCard({ person }: PersonCardProps) {
+  return (
+    <article className="person-card">
+      <div className="person-card-header">
+        <img
+          className="person-avatar"
+          src={person.avatar}
+          alt={`Portrait of ${person.name}`}
+        />
+        <div>
+          <h3>{person.name}</h3>
+          <div className="person-role">{person.role}</div>
+        </div>
+      </div>
+
+      <p>
+        <strong>Speciality:</strong> {person.speciality}
+      </p>
+
+      <ul>
+        {person.responsibilities.map((responsibility) => (
+          <li key={responsibility}>{responsibility}</li>
+        ))}
+      </ul>
+
+      <div className="person-statement">&ldquo;{person.statement}&rdquo;</div>
+    </article>
+  );
+}
+```
+
+### 3. Update `ReactApp.tsx`
+
+At the top of `ReactApp.tsx`, add:
+
+```tsx
+import { PersonCard } from "./features/people-locations/PersonCard.js";
+```
+
+Then remove from `ReactApp.tsx`:
+
+- `PersonCardProps`
+- The entire `PersonCard` function
+
+Do not remove the `Person` type import yet, because other components in `ReactApp.tsx` still use `Person`.
+
+## Step 3: Move `LocationCard` into the People & Locations feature
+
+`LocationCard` belongs with `PersonCard` because both are specific to the People & Locations feature.
+
+Create:
+
+```text
+js/features/people-locations/LocationCard.tsx
+```
+
+Add:
+
+```tsx
+import type { Location } from "../../types.js";
+
+export type LocationCardProps = {
+  location: Location;
+};
+
+export function LocationCard({ location }: LocationCardProps) {
+  return (
+    <article className="location-card">
+      <h3>
+        {location.id} &mdash; {location.name}
+      </h3>
+
+      <p>{location.description}</p>
+
+      <p>
+        <strong>Contains:</strong>
+      </p>
+
+      <ul>
+        {location.contains.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+```
+
+Then update `ReactApp.tsx`:
+
+### Add the import
+
+```tsx
+import { LocationCard } from "./features/people-locations/LocationCard.js";
+```
+
+### Remove the old code
+
+Remove:
+
+- `LocationCardProps`
+- The complete `LocationCard` function
+
+Keep the `Location` type import for now because other components may still use it.
+
+## Step 4: Move `TimelineEventCard` into the Timeline feature
+
+`TimelineEventCard` is specific to the Timeline feature, so it belongs in:
+
+```text
+js/features/timeline/TimelineEventCard.tsx
+```
+
+### 1. Create the folder
+
+Inside:
+
+```text
+js/features
+```
+
+create:
+
+```text
+timeline
+```
+
+### 2. Create `TimelineEventCard.tsx`
+
+Add:
+
+```tsx
+import type { TimelineEvent } from "../../types.js";
+import { formatDate } from "../../utils.js";
+
+export type TimelineEventCardProps = {
+  event: TimelineEvent;
+};
+
+export function TimelineEventCard({ event }: TimelineEventCardProps) {
+  const certaintyBadgeClasses: Record<TimelineEvent["certainty"], string> = {
+    confirmed: "badge-reviewed",
+    reported: "badge-flagged",
+    contradictory: "badge-critical",
+  };
+
+  return (
+    <article className={`timeline-event certainty-${event.certainty}`}>
+      <div className="timeline-time">
+        {formatDate(event.time)} &middot;{" "}
+        <span className={`badge ${certaintyBadgeClasses[event.certainty]}`}>
+          {event.certainty}
+        </span>
+      </div>
+
+      <h3>{event.title}</h3>
+      <p>{event.description}</p>
+    </article>
+  );
+}
+```
+
+### 3. Update `ReactApp.tsx`
+
+Add this import:
+
+```tsx
+import { TimelineEventCard } from "./features/timeline/TimelineEventCard.js";
+```
+
+Remove from `ReactApp.tsx`:
+
+- `TimelineEventCardProps`
+- The complete `TimelineEventCard` function
+
+Keep the `TimelineEvent` type import because other components still use it.
+
+## Step 5: Move `PeopleLocationsView` into its feature folder
+
+The view that composes the people and location cards belongs in:
+
+```text
+js/features/people-locations/PeopleLocationsView.tsx
+```
+
+### 1. Create `PeopleLocationsView.tsx`
+
+Add:
+
+```tsx
+import type { Location, Person } from "../../types.js";
+import { Panel } from "../../components/Panel.js";
+import { LocationCard } from "./LocationCard.js";
+import { PersonCard } from "./PersonCard.js";
+
+export type PeopleLocationsViewProps = {
+  people: Person[];
+  locations: Location[];
+};
+
+export function PeopleLocationsView({
+  people,
+  locations,
+}: PeopleLocationsViewProps) {
+  return (
+    <main className="app-main react-route-content">
+      <section className="react-view" aria-labelledby="people-locations-title">
+        <h2 id="people-locations-title">People &amp; Locations</h2>
+
+        <Panel title="People">
+          <div className="people-grid">
+            {people.map((person) => (
+              <PersonCard key={person.id} person={person} />
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Locations">
+          <div className="locations-grid">
+            {locations.map((location) => (
+              <LocationCard key={location.id} location={location} />
+            ))}
+          </div>
+        </Panel>
+      </section>
+    </main>
+  );
+}
+```
+
+### 2. Update `ReactApp.tsx`
+
+Add this import:
+
+```tsx
+import { PeopleLocationsView } from "./features/people-locations/PeopleLocationsView.js";
+```
+
+Then remove from `ReactApp.tsx`:
+
+- `PeopleLocationsViewProps`
+- The complete `PeopleLocationsView` function
+
+Keep the `Person` and `Location` type imports only if another component in `ReactApp.tsx` still uses them. If they are no longer used there, remove them from the type import.
+
+## Step 6: Move `TimelineView` into the Timeline feature folder
+
+`TimelineView` belongs with `TimelineEventCard`.
+
+Create:
+
+```text
+js/features/timeline/TimelineView.tsx
+```
+
+Add:
+
+```tsx
+import type { TimelineEvent } from "../../types.js";
+import { Panel } from "../../components/Panel.js";
+import { TimelineEventCard } from "./TimelineEventCard.js";
+
+export type TimelineViewProps = {
+  events: TimelineEvent[];
+};
+
+export function TimelineView({ events }: TimelineViewProps) {
+  return (
+    <main className="app-main react-route-content">
+      <section className="react-view" aria-labelledby="timeline-title">
+        <h2 id="timeline-title">Timeline</h2>
+
+        <Panel title="Timeline events">
+          {events.length === 0 ? (
+            <p>No timeline events loaded yet.</p>
+          ) : (
+            events.map((event) => (
+              <TimelineEventCard key={event.id} event={event} />
+            ))
+          )}
+        </Panel>
+      </section>
+    </main>
+  );
+}
+```
+
+### Update `ReactApp.tsx`
+
+Add:
+
+```tsx
+import { TimelineView } from "./features/timeline/TimelineView.js";
+```
+
+Remove from `ReactApp.tsx`:
+
+- `TimelineViewProps`
+- The complete `TimelineView` function
+
+Keep the `TimelineEvent` type import only if another component in `ReactApp.tsx` still uses it. If not, remove it from the type import.
+
+### Verify
+
+Run:
+
+```bash
+npm run build
+npm run lint
+```
+
+Then check the Timeline route. Confirm that:
+
+- Timeline events still appear.
+- The empty-state message remains available when the events array is empty.
+- The certainty badges still render.
+- The shared `Panel` still works.
+
+Reply **Next** after this step passes.## Step 6: Move `TimelineView` into the Timeline feature folder
+
+`TimelineView` belongs with `TimelineEventCard`, so create:
+
+```text
+js/features/timeline/TimelineView.tsx
+```
+
+Add:
+
+```tsx
+import type { TimelineEvent } from "../../types.js";
+import { Panel } from "../../components/Panel.js";
+import { TimelineEventCard } from "./TimelineEventCard.js";
+
+export type TimelineViewProps = {
+  events: TimelineEvent[];
+};
+
+export function TimelineView({ events }: TimelineViewProps) {
+  return (
+    <main className="app-main react-route-content">
+      <section className="react-view" aria-labelledby="timeline-title">
+        <h2 id="timeline-title">Timeline</h2>
+
+        <Panel title="Timeline events">
+          {events.length === 0 ? (
+            <p>No timeline events loaded yet.</p>
+          ) : (
+            events.map((event) => (
+              <TimelineEventCard key={event.id} event={event} />
+            ))
+          )}
+        </Panel>
+      </section>
+    </main>
+  );
+}
+```
+
+### Update `ReactApp.tsx`
+
+Add this import:
+
+```tsx
+import { TimelineView } from "./features/timeline/TimelineView.js";
+```
+
+Then remove from `ReactApp.tsx`:
+
+- `TimelineViewProps`
+- The complete `TimelineView` function
+
+Keep the `TimelineEvent` type import only if another component in `ReactApp.tsx` still uses it. If it is no longer used there, remove it from the type import.
+
+The feature-specific People/Locations and Timeline files are now separated. Next we’ll move the Dashboard pieces, starting with the shared dashboard presentation components so the shell file becomes focused on routing and app coordination.
+
+Read , lines 200 to 520
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx",
+"view_range": [
+200,
+520
+]
+}
+
+Read , lines 520 to 700
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx",
+"view_range": [
+520,
+700
+]
+}
+
+Read , lines 390 to 480
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx",
+"view_range": [
+390,
+480
+]
+}
+
+## Step 7: Move the Dashboard presentation components
+
+The Dashboard feature should now get its own folder:
+
+```text
+js/features/dashboard
+```
+
+In this step, move the presentation side of the Dashboard into:
+
+```text
+js/features/dashboard/DashboardView.tsx
+```
+
+Keep `DashboardContainer` in `ReactApp.tsx` for now because it still coordinates shared application state.
+
+### 1. Create `DashboardView.tsx`
+
+Create the file and add:
+
+```tsx
+import type { CaseData, Evidence, TimelineEvent } from "../../types.js";
+import { formatDate, getStatusBadgeClass } from "../../utils.js";
+
+export type DashboardViewProps = {
+  caseData: CaseData;
+  evidenceCount: number;
+  peopleCount: number;
+  locationsCount: number;
+  bookmarkCount: number;
+  reviewedCount: number;
+  progress: number;
+  recentEvidence: Evidence[];
+  recentTimeline: TimelineEvent[];
+};
+
+export function DashboardView({
+  caseData,
+  evidenceCount,
+  peopleCount,
+  locationsCount,
+  bookmarkCount,
+  reviewedCount,
+  progress,
+  recentEvidence,
+  recentTimeline,
+}: DashboardViewProps) {
+  return (
+    <main className="app-main react-route-content">
+      <section className="react-view" aria-labelledby="dashboard-title">
+        <h2 id="dashboard-title">Case Dashboard</h2>
+
+        <div className="case-summary-card">
+          <h3>{caseData.title || "Case"}</h3>
+          <p>
+            <span className="badge badge-flagged">
+              {(caseData.status || "unknown").toUpperCase()}
+            </span>
+          </p>
+          <p>{caseData.summary || "Loading case summary..."}</p>
+        </div>
+
+        <div className="stat-grid">
+          <StatCard value={evidenceCount} label="Evidence items" />
+          <StatCard value={peopleCount} label="People" />
+          <StatCard value={locationsCount} label="Locations" />
+          <StatCard value={bookmarkCount} label="Bookmarked" />
+          <StatCard value={reviewedCount} label="Reviewed" />
+        </div>
+
+        <ReviewProgress progress={progress} />
+
+        <div className="dashboard-columns">
+          <div className="dashboard-panel">
+            <h3>Recent evidence</h3>
+            {recentEvidence.length === 0 ? (
+              <p>No evidence loaded yet.</p>
+            ) : (
+              recentEvidence.map((evidence) => (
+                <div className="mini-list-item" key={evidence.id}>
+                  <strong>{evidence.id}</strong> &mdash; {evidence.title}{" "}
+                  <span
+                    className={`badge ${getStatusBadgeClass(evidence.status)}`}
+                  >
+                    {evidence.status}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="dashboard-panel">
+            <h3>Recent timeline events</h3>
+            {recentTimeline.length === 0 ? (
+              <p>No timeline events loaded yet.</p>
+            ) : (
+              recentTimeline.map((event) => (
+                <div className="mini-list-item" key={event.id}>
+                  <strong>{formatDate(event.time)}</strong>
+                  <br />
+                  {event.title}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+type StatCardProps = {
+  value: number;
+  label: string;
+};
+
+function StatCard({ value, label }: StatCardProps) {
+  return (
+    <div className="stat-card">
+      <div className="stat-value">{value}</div>
+      <div className="stat-label">{label}</div>
+    </div>
+  );
+}
+
+type ReviewProgressProps = {
+  progress: number;
+};
+
+function ReviewProgress({ progress }: ReviewProgressProps) {
+  return (
+    <div className="dashboard-panel">
+      <h3>Review progress</h3>
+      <div className="progress-bar-outer">
+        <div className="progress-bar-inner" style={{ width: `${progress}%` }} />
+      </div>
+      <p>{progress}% of evidence reviewed</p>
+    </div>
+  );
+}
+```
+
+### 2. Import `DashboardView` into `ReactApp.tsx`
+
+At the top of `ReactApp.tsx`, add:
+
+```tsx
+import { DashboardView } from "./features/dashboard/DashboardView.js";
+```
+
+### 3. Remove the old Dashboard presentation code
+
+Remove from `ReactApp.tsx`:
+
+- `DashboardViewProps`
+- The complete `DashboardView` function
+- `StatCardProps`
+- The complete `StatCard` function
+- The complete `ReviewProgress` function
+
+Do **not** remove `DashboardContainer`.
+
+For now, leave `CaseSummary`, `RecentEvidence`, and `RecentTimeline` in the file. They are no longer used by the new Dashboard, but we will clean them up in a later step.
+
+### 4. Clean up imports in `ReactApp.tsx`
+
+After removing the presentation code, `ReactApp.tsx` should no longer need:
+
+```tsx
+import { formatDate, getStatusBadgeClass } from "./utils.js";
+```
+
+Remove it if neither helper is used elsewhere in `ReactApp.tsx`.
+
+The `CaseData` type may also no longer be used in `ReactApp.tsx`. Remove it from the type import if the editor reports it as unused.
+
+## Step 8: Move `DashboardContainer` into the Dashboard feature
+
+The Dashboard container is feature-specific, so move it to:
+
+```text
+js/features/dashboard/DashboardContainer.tsx
+```
+
+### 1. Create `DashboardContainer.tsx`
+
+Add:
+
+````tsx
+import { state } from "../../state.js";
+import { DashboardView } from "./DashboardView.js";
+
+export function DashboardContainer() {
+  const reviewedCount = state.allEvidence.filter(
+    (evidence) => evidence.status.toLowerCase() === "reviewed",
+  ).length;
+
+  const progress = state.allEvidence.length
+    ? Math.round((reviewedCount / state.allEvidence.length) * 100)
+    : 0;
+
+  const recentEvidence = state.allEvidence.slice(-5).reverse();
+  const recentTimeline = state.allTimeline.slice(-5).reverse();
+
+  return (
+    <DashboardView
+      caseData={state.caseData}
+      peopleCount={state.allPeople.length}
+      locationsCount={state.allLocations.length}
+## Step 8: Move `DashboardContainer` into the Dashboard feature
+
+The container is Dashboard-specific, so move it to:
+
+```text
+js/features/dashboard/DashboardContainer.tsx
+````
+
+### 1. Create `DashboardContainer.tsx`
+
+Add:
+
+```tsx
+import { state } from "../../state.js";
+import type { TimelineEvent } from "../../types.js";
+import { DashboardView } from "./DashboardView.js";
+
+export function DashboardContainer() {
+  const reviewedCount = state.allEvidence.filter(
+    (evidence) => evidence.status.toLowerCase() === "reviewed",
+  ).length;
+
+  const progress = state.allEvidence.length
+    ? Math.round((reviewedCount / state.allEvidence.length) * 100)
+    : 0;
+
+  const recentEvidence = state.allEvidence.slice(-5).reverse();
+  const recentTimeline: TimelineEvent[] = state.allTimeline.slice(-5).reverse();
+
+  return (
+    <DashboardView
+      caseData={state.caseData}
+      peopleCount={state.allPeople.length}
+      locationsCount={state.allLocations.length}
+      bookmarkCount={state.bookmarks.length}
+      reviewedCount={reviewedCount}
+      progress={progress}
+      evidenceCount={state.allEvidence.length}
+      recentEvidence={recentEvidence}
+      recentTimeline={recentTimeline}
+    />
+  );
+}
+```
+
+The explicit `TimelineEvent[]` annotation is optional, but it makes the prepared value clear.
+
+### 2. Update `ReactApp.tsx`
+
+Add this import:
+
+```tsx
+import { DashboardContainer } from "./features/dashboard/DashboardContainer.js";
+```
+
+Remove from `ReactApp.tsx`:
+
+- The complete `DashboardContainer` function
+- Any imports used only by that function, such as `state` if it is no longer used elsewhere
+
+However, check before removing `state`: `RouteContent` still currently passes:
+
+```tsx
+people={state.allPeople}
+locations={state.allLocations}
+events={state.allTimeline}
+```
+
+So `state` is still needed in `ReactApp.tsx` until those route views are moved or changed.
+
+Also check the type imports. `TimelineEvent` may still be used elsewhere in `ReactApp.tsx`; remove it only if your editor or build confirms it is unused.
+
+The Dashboard is now feature-local. Next I’ll guide you through moving the shell itself so `ReactApp.tsx` becomes the application entry component rather than a second flat module containing every feature.
+
+Read , lines 1 to 180
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx",
+"view_range": [
+1,
+180
+]
+}
+
+## Step 9: Move the shell routing definitions and header
+
+The remaining active code in `ReactApp.tsx` still contains:
+
+- Route definitions
+- Hash-route helpers
+- The `Header` component
+- Route content
+- App-level effects
+
+We’ll move the route definitions and header first.
+
+### 1. Create the app folder
+
+Inside `js`, create:
+
+```text
+app
+```
+
+The path should be:
+
+```text
+C:\Users\barbs\VS Programs\Advance Web Engineering\Exercise 1\mystery-road-awe-2026\js\app
+```
+
+### 2. Create `js/app/routes.ts`
+
+Add:
+
+```tsx
+export type Route = {
+  id: string;
+  label: string;
+};
+
+export const routes: Route[] = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "evidence", label: "Evidence" },
+  { id: "people", label: "People & Locations" },
+  { id: "timeline", label: "Timeline" },
+  { id: "workspace", label: "Workspace" },
+];
+
+export function getCurrentRoute(): string {
+  const route = window.location.hash.slice(1);
+  return routes.some(({ id }) => id === route) ? route : "dashboard";
+}
+
+export function navigateTo(route: string): void {
+  window.location.hash = route;
+}
+```
+
+### 3. Create `js/app/Header.tsx`
+
+Add:
+
+```tsx
+import { navigateTo, routes } from "./routes.js";
+
+type HeaderProps = {
+  currentRoute: string;
+};
+
+export function Header({ currentRoute }: HeaderProps) {
+  return (
+    <header className="app-header">
+      <div className="header-inner">
+        <a
+          className="brand"
+          href="#dashboard"
+          aria-label="Project ReMotion dashboard"
+        >
+          <img
+            src="assets/logo/logo.svg"
+            alt="Project ReMotion logo"
+            className="brand-logo"
+          />
+          <div>
+            <h1>Project ReMotion</h1>
+            <span className="subtitle">
+              Investigate the failure of an AI-assisted rehabilitation robot.
+            </span>
+          </div>
+        </a>
+
+        <nav className="main-nav" aria-label="Main navigation">
+          {routes.map((route) => (
+            <button
+              key={route.id}
+              type="button"
+              className={`nav-btn${currentRoute === route.id ? " active" : ""}`}
+              data-view={route.id}
+              aria-current={currentRoute === route.id ? "page" : undefined}
+              onClick={() => navigateTo(route.id)}
+            >
+              {route.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+    </header>
+  );
+}
+```
+
+### 4. Update imports in `ReactApp.tsx`
+
+Remove this entire section from `ReactApp.tsx`:
+
+```tsx
+type Route = {
+  id: string;
+  label: string;
+};
+
+const routes: Route[] = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "evidence", label: "Evidence" },
+  { id: "people", label: "People & Locations" },
+  { id: "timeline", label: "Timeline" },
+  { id: "workspace", label: "Workspace" },
+];
+
+function getCurrentRoute() {
+  ...
+}
+
+function navigateTo() {
+  ...
+}
+```
+
+Also remove the complete `Header` function from `ReactApp.tsx`.
+
+Then add these imports:
+
+```tsx
+import { Header } from "./app/Header.js";
+import { getCurrentRoute, routes } from "./app/routes.js";
+```
+
+`RouteContent` still uses `routes`, and `App` still uses `getCurrentRoute`, so both imports are needed.
+
+## Step 10: Move `RouteContent` into the app folder
+
+`RouteContent` is application-level routing logic, so move it to:
+
+```text
+js/app/RouteContent.tsx
+```
+
+### 1. Create `RouteContent.tsx`
+
+Add:
+
+```tsx
+import { state } from "../state.js";
+import { DashboardContainer } from "../features/dashboard/DashboardContainer.js";
+import { PeopleLocationsView } from "../features/people-locations/PeopleLocationsView.js";
+import { TimelineView } from "../features/timeline/TimelineView.js";
+import { routes } from "./routes.js";
+
+type RouteContentProps = {
+  currentRoute: string;
+};
+
+export function RouteContent({ currentRoute }: RouteContentProps) {
+  if (currentRoute === "dashboard") {
+    return <DashboardContainer />;
+  }
+
+  if (currentRoute === "people") {
+    return (
+      <PeopleLocationsView
+        people={state.allPeople}
+        locations={state.allLocations}
+      />
+    );
+  }
+
+  if (currentRoute === "timeline") {
+    return <TimelineView events={state.allTimeline} />;
+  }
+
+  const route = routes.find(({ id }) => id === currentRoute);
+
+  return (
+    <main className="app-main react-route-content">
+      <section className="react-view" aria-labelledby="stub-page-title">
+        <h2 id="stub-page-title">{route?.label}</h2>
+        <div className="intro-card">
+          <h3>{route?.label} view</h3>
+          <p>
+            This page is ready for the {route?.label.toLowerCase()} features
+            planned for the next exercise.
+          </p>
+        </div>
+      </section>
+    </main>
+  );
+}
+```
+
+### 2. Update `ReactApp.tsx`
+
+Add this import:
+
+```tsx
+import { RouteContent } from "./app/RouteContent.js";
+```
+
+Remove the complete active `RouteContent` function from `ReactApp.tsx`.
+
+Do not remove the commented historical code yet if you are unsure which block is active. Remove only the active function that begins with:
+
+```tsx
+function RouteContent({ currentRoute }: { currentRoute: string }) {
+```
+
+and ends before the `PersonCard` comments.
+
+### 3. Clean up imports
+
+After moving `RouteContent`, these imports should no longer be needed in `ReactApp.tsx`:
+
+````tsx
+import { state } from "./state.js";
+import type {
+  CaseData,
+  Evidence,
+  Location,
+  Person,
+  TimelineEvent,
+} from "./types.js";
+import { Panel } from "./components/Panel.js";
+import { PersonCard } from "./features/people-locations/PersonCard.js";
+import { LocationCard } from "./features/people-locationsNext we’ll move the route-content switch out of the remaining shell file. This keeps feature components in their feature folders and leaves the app layer responsible for selecting which feature to render.
+
+Read [](file:///c%3A/Users/barbs/VS%20Programs/Advance%20Web%20Engineering/Exercise%201/mystery-road-awe-2026/js/ReactApp.tsx), lines 1 to 145
+Completed with input: {
+  "path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx",
+  "view_range": [
+    1,
+    145
+  ]
+}
+
+Read [](file:///c%3A/Users/barbs/VS%20Programs/Advance%20Web%20Engineering/Exercise%201/mystery-road-awe-2026/js/react-main.tsx)
+Completed with input: {
+  "path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\react-main.tsx"
+}
+
+Search for `function RouteContent|export default function App|function DashboardContainer...`
+
+## Step 10: Move `RouteContent` into the app layer
+
+`RouteContent` is application-level routing logic. It decides which feature appears for the current route, so it belongs in:
+
+```text
+js/app/RouteContent.tsx
+````
+
+### 1. Create `js/app/RouteContent.tsx`
+
+Add:
+
+```tsx
+import { state } from "../state.js";
+import { DashboardContainer } from "../features/dashboard/DashboardContainer.js";
+import { PeopleLocationsView } from "../features/people-locations/PeopleLocationsView.js";
+import { TimelineView } from "../features/timeline/TimelineView.js";
+import { routes } from "./routes.js";
+
+type RouteContentProps = {
+  currentRoute: string;
+};
+
+export function RouteContent({ currentRoute }: RouteContentProps) {
+  if (currentRoute === "dashboard") {
+    return <DashboardContainer />;
+  }
+
+  if (currentRoute === "people") {
+    return (
+      <PeopleLocationsView
+        people={state.allPeople}
+        locations={state.allLocations}
+      />
+    );
+  }
+
+  if (currentRoute === "timeline") {
+    return <TimelineView events={state.allTimeline} />;
+  }
+
+  const route = routes.find(({ id }) => id === currentRoute);
+
+  return (
+    <main className="app-main react-route-content">
+      <section className="react-view" aria-labelledby="stub-page-title">
+        <h2 id="stub-page-title">{route?.label}</h2>
+        <div className="intro-card">
+          <h3>{route?.label} view</h3>
+          <p>
+            This page is ready for the {route?.label.toLowerCase()} features
+            planned for the next exercise.
+          </p>
+        </div>
+      </section>
+    </main>
+  );
+}
+```
+
+### 2. Update `ReactApp.tsx`
+
+Add this import:
+
+```tsx
+import { RouteContent } from "./app/RouteContent.js";
+```
+
+Remove the active `RouteContent` function from `ReactApp.tsx`:
+
+```tsx
+function RouteContent({ currentRoute }: { currentRoute: string }) {
+  ...
+}
+```
+
+Do not remove the older commented-out examples yet unless you want to clean them up later.
+
+### 3. Clean up imports
+
+After moving `RouteContent`, these imports should no longer be needed in `ReactApp.tsx`:
+
+```tsx
+import { PeopleLocationsView } from "./features/people-locations/PeopleLocationsView.js";
+import { TimelineView } from "./features/timeline/TimelineView.js";
+```
+
+`state` is still needed by the `appdatachange` logic? Check carefully: after this move, `ReactApp.tsx` itself may no longer read `state`. The data listener only calls `setDataVersion`, so remove this import if it is unused:
+
+```tsx
+import { state } from "./state.js";
+```
+
+Also remove any other imports that your editor marks as unused.
+
+The route switch is now separate. The remaining `ReactApp.tsx` should only be the top-level shell, so the next step is to remove stale commented-out migration code and unused imports before documenting the final structure.
+
+Read , lines 1 to 180
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx",
+"view_range": [
+1,
+180
+]
+}
+
+Read , lines 600 to 720
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx",
+"view_range": [
+600,
+720
+]
+}
+
+Search for `DashboardView|CaseSummary|RecentEvidence|RecentTimeline|PersonCard|LocationCa...`
+
+## Step 11: Clean the old shell file
+
+After moving the components, `ReactApp.tsx` should only contain the app shell.
+
+### 1. Replace the imports at the top
+
+Replace the current imports with:
+
+```tsx
+import { useEffect, useState } from "react";
+import { Header } from "./app/Header.js";
+import { getCurrentRoute } from "./app/routes.js";
+import { RouteContent } from "./app/RouteContent.js";
+```
+
+Remove these old imports if they are still present:
+
+```tsx
+import { state } from "./state.js";
+import { formatDate, getStatusBadgeClass } from "./utils.js";
+import type {
+  CaseData,
+  Evidence,
+  Location,
+  Person,
+  TimelineEvent,
+} from "./types.js";
+import { Panel } from "./components/Panel.js";
+import { PersonCard } from "./features/people-locations/PersonCard.js";
+import { LocationCard } from "./features/people-locations/LocationCard.js";
+import { TimelineEventCard } from "./features/timeline/TimelineEventCard.js";
+import { PeopleLocationsView } from "./features/people-locations/PeopleLocationsView.js";
+import { TimelineView } from "./features/timeline/TimelineView.js";
+import { DashboardView } from "./features/dashboard/DashboardView.js";
+import { DashboardContainer } from "./features/dashboard/DashboardContainer.js";
+```
+
+### 2. Delete stale commented code
+
+Delete all old commented-out blocks from `ReactApp.tsx`, including:
+
+- The old route definitions
+- The old `Header`
+- The old `RouteContent`
+- The commented `PersonCard`
+- The commented `LocationCard`
+- The commented `TimelineEventCard`
+- The commented `Panel`
+- The commented `PeopleLocationsView`
+- The commented `TimelineView`
+- The old commented `Dashboard`
+- The old commented `DashboardView`
+
+These comments are no longer useful because the code now exists in its feature files.
+
+### 3. Delete obsolete active functions
+
+Delete these functions from `ReactApp.tsx`, because they were replaced by `DashboardView.tsx`:
+
+```tsx
+function CaseSummary() { ... }
+function RecentEvidence() { ... }
+function RecentTimeline() { ... }
+```
+
+Do not delete the exported `App` function.
+
+### 4. Keep only the shell
+
+The final file should contain:
+
+```tsx
+import { useEffect, useState } from "react";
+import { Header } from "./app/Header.js";
+import { getCurrentRoute } from "./app/routes.js";
+import { RouteContent } from "./app/RouteContent.js";
+
+export default function App() {
+  const [currentRoute, setCurrentRoute] = useState(getCurrentRoute);
+  const [, setDataVersion] = useState(0);
+
+  useEffect(() => {
+    const handleRouteChange = () => setCurrentRoute(getCurrentRoute());
+
+    window.addEventListener("hashchange", handleRouteChange);
+
+    return () => window.removeEventListener("hashchange", handleRouteChange);
+  }, []);
+
+  useEffect(() => {
+    const handleDataChange = () => setDataVersion((version) => version + 1);
+
+    window.addEventListener("appdatachange", handleDataChange);
+
+    return () => window.removeEventListener("appdatachange", handleDataChange);
+  }, []);
+
+  useEffect(() => {
+    const legacyContent = document.getElementById("app");
+    legacyContent?.classList.add("react-dashboard-hidden");
+  }, [currentRoute]);
+
+  return (
+    <>
+      <Header currentRoute={currentRoute} />
+      <RouteContent currentRoute={currentRoute} />
+    </>
+  );
+}
+```
+
+- [x] Document the structure you landed on (a short `ARCHITECTURE.md` section or README snippet is enough) and the rule you used to decide what's "shared" versus "feature-local."
+
+The code structure now looks like this:
+js/
+├── app/
+│ ├── Header.tsx
+│ ├── RouteContent.tsx
+│ └── routes.ts
+├── components/
+│ └── Panel.tsx
+├── features/
+│ ├── dashboard/
+│ │ ├── DashboardContainer.tsx
+│ │ └── DashboardView.tsx
+│ ├── people-locations/
+│ │ ├── LocationCard.tsx
+│ │ ├── PeopleLocationsView.tsx
+│ │ └── PersonCard.tsx
+│ └── timeline/
+│ ├── TimelineEventCard.tsx
+│ └── TimelineView.tsx
+├── ReactApp.tsx
+├── react-main.tsx
+├── state.ts
+├── types.ts
+└── utils.ts
+
+# React architecture
+
+The React source is organized by feature rather than keeping all components in one file.
+
+- `js/app/` contains application-level concerns such as the shell header, route selection, and route content.
+- `js/components/` contains reusable UI components that are shared by multiple features. `Panel` is shared because Dashboard, People & Locations, and Timeline all use the same panel wrapper.
+- `js/features/dashboard/` contains Dashboard-specific data preparation and presentation.
+- `js/features/people-locations/` contains the People & Locations view and its person and location cards.
+- `js/features/timeline/` contains the Timeline view and timeline event cards.
+- `js/types.ts` and `js/utils.ts` contain shared types and helpers used across features.
+- `js/react-main.tsx` is the React entry point.
+
+The rule for deciding whether code is shared or feature-local is:
+
+> Code is shared when it is generic and reusable by multiple unrelated features without knowing feature-specific details. Code is feature-local when it represents the data, layout, or behavior of one particular feature.
+
+For example, `Panel` is shared because it only provides a generic titled wrapper. `PersonCard` is feature-local because it specifically knows how to display a `Person`, while `TimelineEventCard` is feature-local because it specifically knows how to display a `TimelineEvent`.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What's the difference between organizing files "by type" (all components in one folder, all hooks in another) and "by feature"? What made you choose the structure you chose for this app specifically?
-- [ ] Where did you draw the line between a component that lives inside one feature folder and one that belongs in a shared/common folder? Give one real example of each from your own structure.
+- [x] What's the difference between organizing files "by type" (all components in one folder, all hooks in another) and "by feature"? What made you choose the structure you chose for this app specifically?
+
+## Organizing by type
+
+A type-based structure groups files according to what they are:
+
+```text
+components/
+hooks/
+utils/
+types/
+```
+
+For example, all React components would be placed in one `components` folder, even if they belong to completely different features.
+
+This can be simple for a small project, but as the project grows, related files may become spread across many folders. To understand one feature, you may need to search through several separate directories.
+
+## Organizing by feature
+
+A feature-based structure groups files according to the part of the application they support:
+
+```text
+features/
+├── dashboard/
+├── people-locations/
+└── timeline/
+```
+
+Each feature folder can contain its own views, cards, containers, and feature-specific helpers.
+
+For example, `PersonCard.tsx` is stored with `PeopleLocationsView.tsx` because both belong to the People & Locations feature.
+
+## Structure chosen for this app
+
+I chose a **hybrid feature-oriented structure**:
+
+```text
+js/
+├── app/
+├── components/
+├── features/
+│   ├── dashboard/
+│   ├── people-locations/
+│   └── timeline/
+├── types.ts
+└── utils.ts
+```
+
+The feature-specific code is grouped together:
+
+- `dashboard/` contains the Dashboard container and view.
+- `people-locations/` contains the People & Locations view and cards.
+- `timeline/` contains the Timeline view and event card.
+
+Application-wide code is kept separately:
+
+- `app/` contains the shell, header, routes, and route selection.
+- `components/` contains generic reusable UI such as `Panel`.
+- `types.ts` and `utils.ts` contain code shared across features.
+
+I chose this structure specifically because the application has distinct views with their own components and data:
+
+- Dashboard
+- People & Locations
+- Timeline
+
+Grouping by feature makes each view easier to find, understand, and change. For example, changing the Timeline presentation should mostly involve files inside the Timeline feature folder rather than a large shared components folder. Generic code such as `Panel` remains shared because it is used by multiple features and does not contain feature-specific knowledge.
+
+- [x] Where did you draw the line between a component that lives inside one feature folder and one that belongs in a shared/common folder? Give one real example of each from your own structure.
 
 ---
 
