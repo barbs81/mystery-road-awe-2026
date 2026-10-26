@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { state } from "./state.js";
 import { formatDate, getStatusBadgeClass } from "./utils.js";
-import type { Location, Person, TimelineEvent } from "./types.js";
+import type {
+  CaseData,
+  Evidence,
+  Location,
+  Person,
+  TimelineEvent,
+} from "./types.js";
 
 type Route = {
   id: string;
@@ -101,7 +107,7 @@ function Header({ currentRoute }: { currentRoute: string }) {
 
 function RouteContent({ currentRoute }: { currentRoute: string }) {
   if (currentRoute === "dashboard") {
-    return <Dashboard />;
+    return <DashboardContainer />;
   }
 
   if (currentRoute === "people") {
@@ -361,62 +367,49 @@ function TimelineView({ events }: TimelineViewProps) {
   );
 }
 
-//Assignment 4 Task 4
-//Create a small throw away component
-//This uses an uncontrolled input with defaultValue.
-//It is useful for demonstrating the key problem because React may reuse the existing DOM input when the list order changes.
-type KeyDemoRowProps = {
-  label: string;
+//Assignment 4 Task 5
+/*These props represent everything the Dashboard needs to display:
+caseData — case title, status, and summary
+evidence — available if the view needs the full collection
+peopleCount — number of people
+locationsCount — number of locations
+bookmarkCount — bookmarked evidence count
+reviewedCount — reviewed evidence count
+progress — calculated review percentage
+recentEvidence — selected recent evidence
+recentTimeline — selected recent timeline events
+*/
+type DashboardViewProps = {
+  caseData: CaseData;
+  //evidence: Evidence[];
+  evidenceCount: number;
+  peopleCount: number;
+  locationsCount: number;
+  bookmarkCount: number;
+  reviewedCount: number;
+  progress: number;
+  recentEvidence: Evidence[];
+  recentTimeline: TimelineEvent[];
 };
 
-function KeyDemoRow({ label }: KeyDemoRowProps) {
-  return (
-    <li>
-      <strong>Data item: {label}</strong>
-      <input defaultValue={label} />
-    </li>
-  );
-}
+//Assignment 4 Task 5
+//Rename the current Dashboard into DashboardContainer
+/*This component will remain responsible for:
+Reading from state
+Calculating reviewedCount
+Calculating progress
+Selecting recent evidence and timeline items
+*/
+/*
+This changes the container’s role. It now:
+Reads data from state.
+Calculates the reviewed count.
+Calculates the progress percentage.
+Selects the recent evidence and timeline items.
+Passes the prepared values to DashboardView.
+*/
 
-//Assignment 4 Task 4
-//Without the query parameter, the list renders in this order:
-//First item
-//Second item
-//Third item
-//With ?reordered, it renders:
-//Third item
-//Second item
-//First item
-//The list deliberately uses: key={index}
-type IndexKeyDemoProps = {
-  reordered: boolean;
-};
-
-function IndexKeyDemo({ reordered }: IndexKeyDemoProps) {
-  const labels = ["First item", "Second item", "Third item"];
-  const visibleLabels = reordered ? [...labels].reverse() : labels;
-
-  return (
-    <section className="dashboard-panel">
-      <h3>Temporary key demo</h3>
-      <p>
-        Type into the inputs, then navigate between Dashboard and Timeline. The
-        list order changes while the component stays mounted.
-      </p>
-
-      <ul>
-        {/*{visibleLabels.map((label, index) => (
-          <KeyDemoRow key={index} label={label} />
-        ))}*/}
-        {visibleLabels.map((label) => (
-          <KeyDemoRow key={label} label={label} />
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function Dashboard() {
+/*function Dashboard() {
   const reviewedCount = state.allEvidence.filter(
     (evidence) => evidence.status.toLowerCase() === "reviewed",
   ).length;
@@ -440,6 +433,110 @@ function Dashboard() {
         <div className="dashboard-columns">
           <RecentEvidence />
           <RecentTimeline />
+        </div>
+      </section>
+    </main>
+  );
+}*/
+
+function DashboardContainer() {
+  const reviewedCount = state.allEvidence.filter(
+    (evidence) => evidence.status.toLowerCase() === "reviewed",
+  ).length;
+
+  const progress = state.allEvidence.length
+    ? Math.round((reviewedCount / state.allEvidence.length) * 100)
+    : 0;
+
+  const recentEvidence = state.allEvidence.slice(-5).reverse();
+  const recentTimeline = state.allTimeline.slice(-5).reverse();
+
+  return (
+    <DashboardView
+      caseData={state.caseData}
+      //evidence={state.allEvidence}
+      peopleCount={state.allPeople.length}
+      locationsCount={state.allLocations.length}
+      bookmarkCount={state.bookmarks.length}
+      reviewedCount={reviewedCount}
+      progress={progress}
+      evidenceCount={state.allEvidence.length}
+      recentEvidence={recentEvidence}
+      recentTimeline={recentTimeline}
+    />
+  );
+}
+
+//Assignment 4 Task 5
+function DashboardView({
+  caseData,
+  peopleCount,
+  evidenceCount,
+  locationsCount,
+  bookmarkCount,
+  reviewedCount,
+  progress,
+  recentEvidence,
+  recentTimeline,
+}: DashboardViewProps) {
+  return (
+    <main className="app-main react-route-content">
+      <section className="react-view" aria-labelledby="dashboard-title">
+        <h2 id="dashboard-title">Case Dashboard</h2>
+
+        <div className="case-summary-card">
+          <h3>{caseData.title || "Case"}</h3>
+          <p>
+            <span className="badge badge-flagged">
+              {(caseData.status || "unknown").toUpperCase()}
+            </span>
+          </p>
+          <p>{caseData.summary || "Loading case summary..."}</p>
+        </div>
+
+        <div className="stat-grid">
+          <StatCard value={evidenceCount} label="Evidence items" />
+          <StatCard value={peopleCount} label="People" />
+          <StatCard value={locationsCount} label="Locations" />
+          <StatCard value={bookmarkCount} label="Bookmarked" />
+          <StatCard value={reviewedCount} label="Reviewed" />
+        </div>
+
+        <ReviewProgress progress={progress} />
+
+        <div className="dashboard-columns">
+          <div className="dashboard-panel">
+            <h3>Recent evidence</h3>
+            {recentEvidence.length === 0 ? (
+              <p>No evidence loaded yet.</p>
+            ) : (
+              recentEvidence.map((evidence) => (
+                <div className="mini-list-item" key={evidence.id}>
+                  <strong>{evidence.id}</strong> &mdash; {evidence.title}{" "}
+                  <span
+                    className={`badge ${getStatusBadgeClass(evidence.status)}`}
+                  >
+                    {evidence.status}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="dashboard-panel">
+            <h3>Recent timeline events</h3>
+            {recentTimeline.length === 0 ? (
+              <p>No timeline events loaded yet.</p>
+            ) : (
+              recentTimeline.map((event) => (
+                <div className="mini-list-item" key={event.id}>
+                  <strong>{formatDate(event.time)}</strong>
+                  <br />
+                  {event.title}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </section>
     </main>
@@ -545,19 +642,10 @@ export default function App() {
     legacyContent?.classList.add("react-dashboard-hidden");
   }, [currentRoute]);
 
-  /*
   return (
     <>
       <Header currentRoute={currentRoute} />
       <RouteContent currentRoute={currentRoute} />
-    </>
-  );*/
-
-  return (
-    <>
-      <Header currentRoute={currentRoute} />
-      <RouteContent currentRoute={currentRoute} />
-      <IndexKeyDemo reordered={currentRoute !== "dashboard"} />
     </>
   );
 }

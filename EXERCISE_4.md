@@ -616,9 +616,217 @@ This uses the item’s stable identity instead of its array position.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What goes wrong, concretely, when keys are missing, duplicated, or based on array index for a list that can reorder or filter?
-- [ ] The _original_ vanilla version of this app had a real bug where one feature used an array index as an identifier instead of a stable id. Would that same mistake, ported directly into React as `key={index}`, have caused a symptom a user could notice, or only a console warning? Explain why.
-- [ ] All of this app's real data (people, locations, timeline events) already has stable ids. Is there ever a legitimate reason to use `key={index}` anyway? When?
+- [x] What goes wrong, concretely, when keys are missing, duplicated, or based on array index for a list that can reorder or filter?
+
+When keys are missing, duplicated, or based on array indexes, React cannot reliably track the identity of list items between renders.
+
+### Missing keys
+
+Example:
+
+```tsx
+{
+  people.map((person) => <PersonCard person={person} />);
+}
+```
+
+React displays a warning such as:
+
+```text
+Each child in a list should have a unique "key" prop.
+```
+
+Without keys, React has less information when comparing the previous list with the new list. It may fall back to positional comparison, which can cause unnecessary DOM updates or incorrect component reuse.
+
+### Duplicated keys
+
+Example:
+
+```tsx
+{
+  people.map((person) => <PersonCard key="person" person={person} />);
+}
+```
+
+Every item has the same key. React cannot distinguish one item from another, so it may:
+
+- Warn about duplicate keys.
+- Reuse the wrong component or DOM node.
+- Fail to render updates correctly.
+- Produce missing or duplicated-looking content.
+
+Keys must be unique among siblings.
+
+### Array-index keys
+
+Example:
+
+```tsx
+{
+  people.map((person, index) => <PersonCard key={index} person={person} />);
+}
+```
+
+This can appear to work while the list never changes. It becomes unsafe when items are inserted, removed, filtered, or reordered.
+
+For example, suppose the original list is:
+
+```text
+A, B, C
+```
+
+with keys:
+
+```text
+0, 1, 2
+```
+
+If item `A` is removed, the new list is:
+
+```text
+B, C
+```
+
+with keys:
+
+```text
+0, 1
+```
+
+React may treat the new `B` as the old item at position `0`, which was `A`, and the new `C` as the old item at position `1`, which was `B`. The component or DOM identity can therefore become associated with the wrong data.
+
+This is especially visible with inputs or components that have local state. In our demonstration, after reversing the list, the labels changed position but input values stayed attached to their old positions.
+
+### Correct approach
+
+Use a stable identifier belonging to the actual data item:
+
+```tsx
+<PersonCard key={person.id} person={person} />
+<LocationCard key={location.id} location={location} />
+<TimelineEventCard key={event.id} event={event} />
+```
+
+These keys remain associated with the same person, location, or event even when the collection is reordered or filtered. That allows React to preserve the correct component and DOM identity.
+
+- [x] The _original_ vanilla version of this app had a real bug where one feature used an array index as an identifier instead of a stable id. Would that same mistake, ported directly into React as `key={index}`, have caused a symptom a user could notice, or only a console warning? Explain why.
+
+It could cause a user-visible symptom, not just a console warning.
+
+Using:
+
+```tsx
+{
+  items.map((item, index) => <ItemCard key={index} item={item} />);
+}
+```
+
+does not normally produce a warning because the indexes are unique among the siblings. The problem occurs when the list is reordered, filtered, or items are inserted or removed.
+
+For example, if the original list is:
+
+```text
+A, B, C
+```
+
+React assigns keys:
+
+```text
+A → 0
+B → 1
+C → 2
+```
+
+After filtering out `A`, the list becomes:
+
+```text
+B, C
+```
+
+and the keys become:
+
+```text
+B → 0
+C → 1
+```
+
+React may reuse the component previously associated with key `0` for `B`, even though that component originally represented `A`.
+
+This can produce visible problems when list items contain:
+
+- Input fields
+- Local component state
+- Focus
+- Animations
+- Selection state
+- DOM elements that React reuses
+
+In the temporary demonstration, reversing the list caused the labels to change order while the uncontrolled input values remained attached to their old positions. That is a user-visible mismatch.
+
+Therefore:
+
+- **Missing keys:** usually produce a React console warning and unreliable list reconciliation.
+- **Duplicate keys:** produce a warning and can cause incorrect reuse or missing updates.
+- **`key={index}`:** usually produces no warning, but can cause visible bugs when the list changes order or is filtered.
+
+The safe React version uses stable identifiers:
+
+```tsx
+<PersonCard key={person.id} person={person} />
+<LocationCard key={location.id} location={location} />
+<TimelineEventCard key={event.id} event={event} />
+```
+
+The original vanilla bug would therefore be meaningful when ported to React: it could become a reconciliation bug that users notice, rather than merely a console warning.
+
+- [x] All of this app's real data (people, locations, timeline events) already has stable ids. Is there ever a legitimate reason to use `key={index}` anyway? When?
+
+Yes, but only in limited cases.
+
+Using `key={index}` can be acceptable when all of the following are true:
+
+- The list is purely static.
+- Items are never inserted or removed.
+- Items are never reordered or filtered.
+- The list has no local component state.
+- The list does not contain uncontrolled inputs.
+- The order of the list will not change during the component’s lifetime.
+
+For example, a fixed list of display-only steps could use an index:
+
+```tsx
+const steps = ["Collect evidence", "Review evidence", "Write conclusion"];
+
+function InvestigationSteps() {
+  return (
+    <ol>
+      {steps.map((step, index) => (
+        <li key={index}>{step}</li>
+      ))}
+    </ol>
+  );
+}
+```
+
+Since this list is static, display-only, and never changes order, the index remains associated with the same item.
+
+However, using a stable ID is still preferable when one is available because it communicates the item’s identity more clearly and protects against future changes.
+
+For this application, `key={index}` is not appropriate for the people, locations, or timeline collections because:
+
+- They already have stable IDs.
+- The lists may later be filtered or sorted.
+- Their components may eventually contain interactive state or controls.
+
+The correct keys are:
+
+```tsx
+key={person.id}
+key={location.id}
+key={event.id}
+```
+
+So the short answer is: `key={index}` is legitimate for a static, immutable, display-only list where item identity cannot change, but stable IDs should be used whenever available.
 
 ---
 
@@ -626,13 +834,445 @@ This uses the item’s stable identity instead of its array position.
 
 **Tasks**
 
-- [ ] Classify every component you've built so far as either "presentational" or "feature/container". Explain why.
-- [ ] Find at least one component that's currently doing more than one job, and split it into two components with a clear boundary between them.
+- [x] Classify every component you've built so far as either "presentational" or "feature/container". Explain why.
+
+## Task 5 — Component classification
+
+The components built so far can be classified as follows.
+
+### Presentational components
+
+These components mainly receive data through props and return JSX. They do not decide which route to show or load application data.
+
+#### `PersonCard`
+
+```tsx
+function PersonCard({ person }: PersonCardProps);
+```
+
+**Classification:** Presentational
+
+It receives one `Person` object and displays the person’s information. It does not fetch data, change routes, or manage application state.
+
+#### `LocationCard`
+
+```tsx
+function LocationCard({ location }: LocationCardProps);
+```
+
+**Classification:** Presentational
+
+It receives one `Location` object and renders its name, description, and contained items.
+
+#### `TimelineEventCard`
+
+```tsx
+function TimelineEventCard({ event }: TimelineEventCardProps);
+```
+
+**Classification:** Presentational
+
+It receives one `TimelineEvent` and displays the event’s date, title, description, and certainty badge.
+
+#### `Panel`
+
+```tsx
+function Panel({ title, children }: PanelProps);
+```
+
+**Classification:** Presentational/reusable UI component
+
+`Panel` provides a reusable visual wrapper. It receives a title and arbitrary JSX through `children`, but it does not know where the content comes from or how it should behave.
+
+#### `StatCard`
+
+```tsx
+function StatCard({ value, label }: { value: number; label: string });
+```
+
+**Classification:** Presentational
+
+It receives a value and label and displays them. It contains no application-specific data-loading or routing logic.
+
+#### `ReviewProgress`
+
+```tsx
+function ReviewProgress({ progress }: { progress: number });
+```
+
+**Classification:** Presentational
+
+It receives a calculated progress value and renders the progress bar. The calculation itself happens in `Dashboard`, not inside this component.
+
+### Feature/container components
+
+These components coordinate data, routing, or larger sections of the application.
+
+#### `App`
+
+```tsx
+export default function App();
+```
+
+**Classification:** Feature/container
+
+`App` owns the React shell’s route state and listens for:
+
+- Hash-route changes
+- Data-loading notifications
+
+It decides which major content should be rendered and controls the overall application structure.
+
+#### `Header`
+
+```tsx
+function Header({ currentRoute }: { currentRoute: string });
+```
+
+**Classification:** Feature/navigation component
+
+The visual markup is presentational, but the component also contains navigation behavior:
+
+```tsx
+onClick={() => navigateTo(route.id)}
+```
+
+It knows about the application’s routes and changes the URL hash, so it is more than a purely visual component.
+
+#### `RouteContent`
+
+```tsx
+function RouteContent({ currentRoute }: { currentRoute: string });
+```
+
+**Classification:** Feature/container
+
+It decides what page to render based on the current route:
+
+- Dashboard
+- People & Locations
+- Timeline
+- Evidence stub
+- Workspace stub
+
+This is routing and feature composition logic.
+
+#### `Dashboard`
+
+```tsx
+function Dashboard();
+```
+
+**Classification:** Feature/container
+
+`Dashboard` reads from the shared application state:
+
+```tsx
+state.allEvidence;
+state.allPeople;
+state.allLocations;
+state.bookmarks;
+state.caseData;
+state.allTimeline;
+```
+
+It also calculates derived values such as:
+
+```tsx
+const reviewedCount = ...
+const progress = ...
+```
+
+Then it passes values to presentational components such as `StatCard` and `ReviewProgress`.
+
+#### `PeopleLocationsView`
+
+```tsx
+function PeopleLocationsView({ people, locations }: PeopleLocationsViewProps);
+```
+
+**Classification:** Feature/container
+
+It coordinates the People & Locations feature. It receives collections, maps them into `PersonCard` and `LocationCard`, and composes them inside `Panel` components.
+
+The individual cards are presentational, while this view decides how the feature is structured.
+
+#### `TimelineView`
+
+```tsx
+function TimelineView({ events }: TimelineViewProps);
+```
+
+**Classification:** Feature/container
+
+It coordinates the Timeline feature. It decides whether to render:
+
+- The empty state
+- A mapped collection of `TimelineEventCard` components
+
+It also supplies keys and composes the timeline cards inside a `Panel`.
+
+#### `CaseSummary`
+
+```tsx
+function CaseSummary();
+```
+
+**Classification:** Small feature/container component in the current implementation
+
+Although it mainly displays information, it currently reads directly from shared state:
+
+```tsx
+state.caseData.title;
+state.caseData.status;
+state.caseData.summary;
+```
+
+Because it accesses global application data instead of receiving a `caseData` prop, it is technically container-like.
+
+It could become purely presentational later by changing it to:
+
+```tsx
+type CaseSummaryProps = {
+  caseData: CaseData;
+};
+```
+
+and then passing:
+
+```tsx
+<CaseSummary caseData={state.caseData} />
+```
+
+#### `RecentEvidence`
+
+```tsx
+function RecentEvidence();
+```
+
+**Classification:** Feature/container
+
+It reads directly from:
+
+```tsx
+state.allEvidence;
+```
+
+and calculates the recent five evidence items. A more presentational version would receive the evidence array as a prop.
+
+#### `RecentTimeline`
+
+```tsx
+function RecentTimeline();
+```
+
+**Classification:** Feature/container
+
+It reads directly from:
+
+```tsx
+state.allTimeline;
+```
+
+and calculates the recent timeline events. It could later become presentational by receiving the already-selected events through props.
+
+## Summary table
+
+| Component             | Classification             | Reason                                          |
+| --------------------- | -------------------------- | ----------------------------------------------- |
+| `App`                 | Feature/container          | Owns route and data-change coordination         |
+| `Header`              | Feature/navigation         | Knows routes and changes the URL                |
+| `RouteContent`        | Feature/container          | Chooses content based on the route              |
+| `Dashboard`           | Feature/container          | Reads shared data and calculates derived values |
+| `PeopleLocationsView` | Feature/container          | Composes the People and Locations feature       |
+| `TimelineView`        | Feature/container          | Handles empty state and event-list composition  |
+| `CaseSummary`         | Container-like             | Reads case data directly from shared state      |
+| `RecentEvidence`      | Container-like             | Reads and filters evidence data                 |
+| `RecentTimeline`      | Container-like             | Reads and selects timeline data                 |
+| `PersonCard`          | Presentational             | Displays a `Person` prop                        |
+| `LocationCard`        | Presentational             | Displays a `Location` prop                      |
+| `TimelineEventCard`   | Presentational             | Displays a `TimelineEvent` prop                 |
+| `Panel`               | Presentational/reusable UI | Wraps a title and `children`                    |
+| `StatCard`            | Presentational             | Displays a value and label                      |
+| `ReviewProgress`      | Presentational             | Displays a supplied progress value              |
+
+The main architectural issue is that some small Dashboard components currently read from the shared `state` directly. They work, but in a cleaner feature/container design, the container would read the data and pass it down to presentational components through typed props.
+
+- [x] Find at least one component that's currently doing more than one job, and split it into two components with a clear boundary between them.
+
+A good component to split is currently `Dashboard`.
+
+At the moment, `Dashboard` does two jobs:
+
+1. **Container responsibility**
+   - Reads from the shared `state`.
+   - Calculates `reviewedCount`.
+   - Calculates `progress`.
+   - Selects the data used by the dashboard.
+
+2. **Presentation/composition responsibility**
+   - Builds the page structure.
+   - Renders `CaseSummary`, `StatCard`, `ReviewProgress`, `RecentEvidence`, and `RecentTimeline`.
+
+## Split
+
+Create:
+
+```text
+DashboardContainer
+└── DashboardView
+    ├── CaseSummary
+    ├── StatCard
+    ├── ReviewProgress
+    ├── RecentEvidence
+    └── RecentTimeline
+```
+
+### `DashboardContainer`
+
+This component will read from `state` and calculate derived values:
+
+```tsx
+function DashboardContainer() {
+  const reviewedCount = ...
+  const progress = ...
+
+  return (
+    <DashboardView
+      reviewedCount={reviewedCount}
+      progress={progress}
+      ...
+    />
+  );
+}
+```
+
+### `DashboardView`
+
+This component will receive typed props and only compose/render the UI. It will not read from `state` or calculate application data.
+
+This gives a clear boundary:
+
+- **Container:** knows where data comes from and prepares it.
+- **View:** knows how to display the prepared data.
+
+This is a good split because the Dashboard currently mixes data access, derived calculations, and JSX layout.
+
+#### `DashboardContainer`
+
+Responsible for:
+
+- Reading from the shared `state`
+- Calculating `reviewedCount`
+- Calculating review progress
+- Selecting recent evidence and timeline items
+- Passing prepared data as typed props
+
+#### `DashboardView`
+
+Responsible for:
+
+- Rendering the Dashboard layout
+- Rendering the case summary
+- Rendering the stat cards
+- Rendering review progress
+- Rendering recent evidence
+- Rendering recent timeline events
+
+This creates a clear separation between:
+
+```text
+Data preparation and feature coordination
+```
+
+and:
+
+```text
+Presentation and JSX rendering
+```
 
 **Questions** (depend on the tasks above)
 
-- [ ] For the component you split: what was the single responsibility of each half after the split? If an implementation detail in one half changed, would that change affect the other half? Why or why not?
-- [ ] Give one concrete rule you used to decide "this belongs in a presentational component" versus "this belongs in a feature component."
+- [x] For the component you split: what was the single responsibility of each half after the split? If an implementation detail in one half changed, would that change affect the other half? Why or why not?
+
+The original `Dashboard` component was split into two components:
+
+- `DashboardContainer`
+- `DashboardView`
+
+## `DashboardContainer`
+
+Its single responsibility is **data preparation and feature coordination**.
+
+It:
+
+- Reads data from the shared `state`.
+- Calculates the reviewed evidence count.
+- Calculates the review-progress percentage.
+- Selects the recent evidence items.
+- Selects the recent timeline events.
+- Passes the prepared values to `DashboardView` through typed props.
+
+For example:
+
+```tsx
+<DashboardView
+  caseData={state.caseData}
+  evidenceCount={state.allEvidence.length}
+  peopleCount={state.allPeople.length}
+  locationsCount={state.allLocations.length}
+  bookmarkCount={state.bookmarks.length}
+  reviewedCount={reviewedCount}
+  progress={progress}
+  recentEvidence={recentEvidence}
+  recentTimeline={recentTimeline}
+/>
+```
+
+## `DashboardView`
+
+Its single responsibility is **rendering the Dashboard interface**.
+
+It:
+
+- Receives prepared data through props.
+- Renders the case summary.
+- Renders the stat cards.
+- Renders the review-progress display.
+- Renders recent evidence.
+- Renders recent timeline events.
+
+It does not read directly from `state` or calculate the application’s derived data.
+
+## Would changes in one affect the other?
+
+Usually, no. The two components are separated by their typed props interface.
+
+For example, the data-loading implementation could change inside `DashboardContainer`:
+
+```tsx
+state.allEvidence;
+```
+
+could later be replaced with:
+
+```tsx
+const evidence = useDashboardData();
+```
+
+As long as `DashboardContainer` continues to provide the same props, `DashboardView` would not need to change.
+
+Likewise, the visual implementation of `DashboardView` could change from cards to a table, or the CSS classes could be redesigned, without changing how `DashboardContainer` loads or calculates the data.
+
+The main thing that connects them is the `DashboardViewProps` contract. If that contract changes—for example, if the view needs a new property or an existing property changes type—then both sides may need updating.
+
+So the split reduces coupling:
+
+- Data-source changes generally stay in `DashboardContainer`.
+- Presentation changes generally stay in `DashboardView`.
+- Only changes to the props contract affect both components.
+
+- [x] Give one concrete rule you used to decide "this belongs in a presentational component" versus "this belongs in a feature component."
 
 ---
 
