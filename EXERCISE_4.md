@@ -2820,18 +2820,456 @@ Grouping by feature makes each view easier to find, understand, and change. For 
 
 - [x] Where did you draw the line between a component that lives inside one feature folder and one that belongs in a shared/common folder? Give one real example of each from your own structure.
 
+I used this rule:
+
+> A component belongs in a feature folder when it understands and displays data specific to one feature. It belongs in a shared/common folder when it provides a generic UI structure that can be reused by multiple features without knowing their data model.
+
+### Feature-local example
+
+`PersonCard.tsx` belongs in:
+
+```text
+js/features/people-locations/
+```
+
+It is feature-local because it specifically understands the `Person` type and renders person-specific fields:
+
+```tsx
+person.name;
+person.role;
+person.speciality;
+person.responsibilities;
+person.statement;
+```
+
+It would not make sense to use `PersonCard` for a timeline event or a dashboard statistic.
+
+### Shared example
+
+`Panel.tsx` belongs in:
+
+```text
+js/components/
+```
+
+It is shared because it provides a generic titled wrapper:
+
+```tsx
+type PanelProps = {
+  title: string;
+  children: ReactNode;
+};
+```
+
+It does not know whether its children are:
+
+- Person cards
+- Location cards
+- Timeline events
+- Dashboard content
+
+It is used by multiple features, including People & Locations and Timeline.
+
+So the practical boundary was:
+
+- **Feature folder:** understands feature-specific data or presentation.
+- **Shared folder:** provides reusable structure without feature-specific knowledge.
+
 ---
 
 ## Demo 7 — Reusable UI elements
 
 **Tasks**
 
-- [ ] Extract at least one presentational component that is genuinely reused in **two or more different places** in the app (e.g. a badge, a card shell, a button variant), with a typed props API that makes it flexible enough for both uses without becoming a special-cased mess.
+- [x] Extract at least one presentational component that is genuinely reused in **two or more different places** in the app (e.g. a badge, a card shell, a button variant), with a typed props API that makes it flexible enough for both uses without becoming a special-cased mess.
+
+## Demo 7 — Step 1: Confirm the reusable component
+
+We will use the existing `Panel` component because it already meets the main requirement.
+
+Open `Panel.tsx`:
+
+```tsx
+import type { ReactNode } from "react";
+
+export type PanelProps = {
+  title: string;
+  children: ReactNode;
+};
+
+export function Panel({ title, children }: PanelProps) {
+  return (
+    <section className="dashboard-panel">
+      <h3>{title}</h3>
+      {children}
+    </section>
+  );
+}
+```
+
+This component has a typed props API:
+
+- `title: string`
+- `children: ReactNode`
+
+It is genuinely reused in two different feature locations:
+
+### People & Locations
+
+In `PeopleLocationsView.tsx`:
+
+```tsx
+<Panel title="People">
+  ...
+</Panel>
+
+<Panel title="Locations">
+  ...
+</Panel>
+```
+
+### Timeline
+
+In `TimelineView.tsx`:
+
+```tsx
+<Panel title="Timeline events">...</Panel>
+```
+
+This already satisfies the “two or more different places” requirement because `Panel` is used in two different feature views, not just twice inside one component.
+
+### Step 2: Make the shared `Panel` API more flexible
+
+The current `Panel` works, but its API requires a `title` every time. To make it flexible for different uses without special-casing, allow the heading to be optional.
+
+Open `Panel.tsx`.
+
+Replace it with:
+
+```tsx
+import type { ReactNode } from "react";
+
+export type PanelProps = {
+  title?: string;
+  children: ReactNode;
+};
+
+export function Panel({ title, children }: PanelProps) {
+  return (
+    <section className="dashboard-panel">
+      {title && <h3>{title}</h3>}
+      {children}
+    </section>
+  );
+}
+```
+
+### Why this API is flexible
+
+- `children` allows any feature content.
+- `title` remains available for titled panels.
+- `title` is optional for cases where the parent already provides a heading or does not need one.
+- The component does not contain People, Locations, Timeline, or Dashboard-specific logic.
+
+The conditional:
+
+```tsx
+{
+  title && <h3>{title}</h3>;
+}
+```
+
+renders the heading only when a title is supplied.
+
+Do not change the existing call sites. They should continue to work:
+
+```tsx
+<Panel title="People">
+```
+
+```tsx
+<Panel title="Locations">
+```
+
+```tsx
+<Panel title="Timeline events">
+```
+
+## Step 3: Reuse `Panel` in the Dashboard
+
+To demonstrate reuse across different features, use `Panel` in the Dashboard as well.
+
+Open `DashboardView.tsx`.
+
+At the top, make sure this import exists:
+
+```tsx
+import { Panel } from "../../components/Panel.js";
+```
+
+You should already have it if the file was copied from the earlier Dashboard implementation. If not, add it with the other imports.
+
+Find the recent evidence section:
+
+```tsx
+<div className="dashboard-panel">
+  <h3>Recent evidence</h3>
+  ...
+</div>
+```
+
+Replace only the outer opening and closing elements:
+
+```tsx
+<Panel title="Recent evidence">...</Panel>
+```
+
+The content inside should remain unchanged.
+
+Then find the recent timeline section:
+
+```tsx
+<div className="dashboard-panel">
+  <h3>Recent timeline events</h3>
+  ...
+</div>
+```
+
+Replace it with:
+
+```tsx
+<Panel title="Recent timeline events">...</Panel>
+```
+
+Again, keep the existing conditional rendering and mapped list inside unchanged.
+
+### Important
+
+Do not replace the `dashboard-columns` wrapper:
+
+```tsx
+<div className="dashboard-columns">...</div>
+```
+
+Only replace the two individual panel wrappers inside it.
+
+After this change, `Panel` is reused by:
+
+- People & Locations
+- Timeline
+- Dashboard
+
+````
+
 
 **Questions** (depend on the tasks above)
 
-- [ ] Show the two (or more) places your reusable component is used. What varies between them via props, and what stays fixed inside the component itself? How did you decide where that line goes?
-- [ ] The original vanilla app had duplicated HTML-template code (the same card markup written out twice, slightly differently, in two functions). Compare that directly to what you just built. What does a reusable component give you that copy-pasted template strings didn't?
+- [X] Show the two (or more) places your reusable component is used. What varies between them via props, and what stays fixed inside the component itself? How did you decide where that line goes?
+
+The reusable component is `Panel` in `Panel.tsx`.
+
+It is used in several places.
+
+### Dashboard
+
+In `DashboardView.tsx`:
+
+```tsx
+<Panel title="Recent evidence">
+  {/* recent evidence content */}
+</Panel>
+
+<Panel title="Recent timeline events">
+  {/* recent timeline content */}
+</Panel>
+````
+
+### People & Locations
+
+In `PeopleLocationsView.tsx`:
+
+```tsx
+<Panel title="People">
+  {/* person cards */}
+</Panel>
+
+<Panel title="Locations">
+  {/* location cards */}
+</Panel>
+```
+
+### Timeline
+
+In `TimelineView.tsx`:
+
+```tsx
+<Panel title="Timeline events">{/* timeline event cards */}</Panel>
+```
+
+## What varies through props?
+
+The `title` varies depending on where the component is used:
+
+```tsx
+title = "People";
+title = "Locations";
+title = "Timeline events";
+title = "Recent evidence";
+title = "Recent timeline events";
+```
+
+The content also varies through `children`. Each parent supplies different JSX:
+
+- Person cards
+- Location cards
+- Timeline event cards
+- Recent evidence items
+- Recent timeline items
+
+The typed props are:
+
+```tsx
+export type PanelProps = {
+  title?: string;
+  children: ReactNode;
+};
+```
+
+## What stays fixed?
+
+The `Panel` component keeps the common structure fixed:
+
+```tsx
+<section className="dashboard-panel">
+  {title && <h3>{title}</h3>}
+  {children}
+</section>
+```
+
+The following details stay the same everywhere:
+
+- The outer `<section>` element
+- The `dashboard-panel` CSS class
+- The optional heading behavior
+- The location where the title appears
+- The location where the child content is rendered
+
+## How I decided the boundary
+
+I kept the generic layout responsibility inside `Panel` and left feature-specific content in the parent components.
+
+The rule was:
+
+> If the code is shared structure that does not need to understand the feature’s data, it belongs in `Panel`. If it knows about people, locations, evidence, or timeline events, it stays in the corresponding feature component.
+
+This avoids special cases such as:
+
+```tsx
+if (title === "People") {
+  // render people-specific content
+}
+```
+
+`Panel` does not know what its children contain. It only provides a consistent wrapper, title, and styling. That makes it flexible enough to be reused without becoming tied to one feature.
+
+- [x] The original vanilla app had duplicated HTML-template code (the same card markup written out twice, slightly differently, in two functions). Compare that directly to what you just built. What does a reusable component give you that copy-pasted template strings didn't?
+
+The original vanilla app created UI by building HTML strings in multiple functions. Similar card or panel markup was copied and pasted, sometimes with small differences.
+
+For example, the vanilla code repeatedly used patterns like:
+
+```ts
+html += '<div class="dashboard-panel">';
+html += "<h3>Recent evidence</h3>";
+html += "...content...";
+html += "</div>";
+```
+
+and then repeated a similar structure for timeline events or other views.
+
+This created several problems:
+
+- The same structure existed in multiple places.
+- A styling or markup change had to be made in several functions.
+- The duplicated versions could gradually become inconsistent.
+- It was easier to introduce mistakes such as duplicate headings or mismatched closing tags.
+- The string-based markup was harder to type-check and compose.
+
+The React version extracts that repeated structure into the reusable `Panel` component:
+
+```tsx
+export type PanelProps = {
+  title?: string;
+  children: ReactNode;
+};
+
+export function Panel({ title, children }: PanelProps) {
+  return (
+    <section className="dashboard-panel">
+      {title && <h3>{title}</h3>}
+      {children}
+    </section>
+  );
+}
+```
+
+The component is reused with different content:
+
+```tsx
+<Panel title="Recent evidence">{/* recent evidence JSX */}</Panel>
+```
+
+```tsx
+<Panel title="Timeline events">{/* timeline JSX */}</Panel>
+```
+
+```tsx
+<Panel title="People">{/* people card JSX */}</Panel>
+```
+
+## What the reusable component provides
+
+### 1. One source of truth
+
+The panel structure and CSS class are defined once:
+
+```tsx
+<section className="dashboard-panel">
+```
+
+If the structure changes, it can be updated in one component.
+
+### 2. Typed props
+
+TypeScript checks that the component receives the expected values:
+
+```tsx
+title?: string;
+children: ReactNode;
+```
+
+The old HTML strings had no equivalent compile-time checking.
+
+### 3. Composition
+
+`children` allows each feature to provide different content while reusing the same wrapper:
+
+- Evidence items
+- Timeline events
+- Person cards
+- Location cards
+
+The panel does not need to know about any of those data types.
+
+### 4. Clear component boundaries
+
+The parent feature decides what content belongs inside the panel. `Panel` decides only how that content is wrapped and titled.
+
+### 5. React-managed rendering
+
+The UI is expressed as JSX and remains part of React’s component tree. Unlike `innerHTML`, the markup is not manually injected into the DOM behind React’s back.
+
+So the main difference is that the reusable component gives a single, typed, composable source of truth for the shared UI structure, while the old copy-pasted template strings duplicated markup and made consistency harder to maintain.
 
 ---
 

@@ -1,5 +1,6 @@
 import type { CaseData, Evidence, TimelineEvent } from "../../types.js";
 import { formatDate, getStatusBadgeClass } from "../../utils.js";
+import { Panel } from "../../components/Panel.js";
 
 export type DashboardViewProps = {
   caseData: CaseData;
@@ -50,8 +51,8 @@ export function DashboardView({
         <ReviewProgress progress={progress} />
 
         <div className="dashboard-columns">
-          <div className="dashboard-panel">
-            <h3>Recent evidence</h3>
+          <Panel title="Recent evidence">
+            {/* <h3>Recent evidence</h3> */}
             {recentEvidence.length === 0 ? (
               <p>No evidence loaded yet.</p>
             ) : (
@@ -66,10 +67,10 @@ export function DashboardView({
                 </div>
               ))
             )}
-          </div>
+          </Panel>
 
-          <div className="dashboard-panel">
-            <h3>Recent timeline events</h3>
+          <Panel title="Recent timeline events">
+            {/* <h3>Recent timeline events</h3> */}
             {recentTimeline.length === 0 ? (
               <p>No timeline events loaded yet.</p>
             ) : (
@@ -81,7 +82,7 @@ export function DashboardView({
                 </div>
               ))
             )}
-          </div>
+          </Panel>
         </div>
       </section>
     </main>
