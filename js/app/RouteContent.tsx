@@ -8,10 +8,21 @@ import { TimelineView } from "../features/timeline/TimelineView.js";
 import { WorkspaceView } from "../features/workspace/WorkspaceView.js";
 import { Navigate, Route, Routes } from "react-router-dom";
 
-export function RouteContent() {
+export type RouteContentProps = {
+  bookmarks: string[];
+  onToggleBookmark: (evidenceId: string) => void;
+};
+
+export function RouteContent({
+  bookmarks,
+  onToggleBookmark,
+}: RouteContentProps) {
   return (
     <Routes>
-      <Route path="/dashboard" element={<DashboardContainer />} />
+      <Route
+        path="/dashboard"
+        element={<DashboardContainer bookmarks={bookmarks} />}
+      />
       <Route
         path="/team/people"
         element={<PeopleView people={state.allPeople} />}
@@ -38,6 +49,8 @@ export function RouteContent() {
             evidence={state.allEvidence}
             people={state.allPeople}
             locations={state.allLocations}
+            bookmarks={bookmarks}
+            onToggleBookmark={onToggleBookmark}
           />
         }
       />
@@ -47,6 +60,7 @@ export function RouteContent() {
           <WorkspaceView
             evidence={state.allEvidence}
             people={state.allPeople}
+            bookmarks={bookmarks}
           />
         }
       />

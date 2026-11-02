@@ -10,9 +10,14 @@ const HYPOTHESIS_STORAGE_KEY = "remotion_hypothesis";
 export type WorkspaceViewProps = {
   evidence: Evidence[];
   people: Person[];
+  bookmarks: string[];
 };
 
-export function WorkspaceView({ evidence, people }: WorkspaceViewProps) {
+export function WorkspaceView({
+  evidence,
+  people,
+  bookmarks,
+}: WorkspaceViewProps) {
   const [hypothesisSaved, setHypothesisSaved] = useState(false);
   const [suspectId, setSuspectId] = useState("");
   const [nature, setNature] = useState("");
@@ -21,7 +26,7 @@ export function WorkspaceView({ evidence, people }: WorkspaceViewProps) {
   const [explanation, setExplanation] = useState("");
   const [alternative, setAlternative] = useState("");
   const bookmarkedEvidence = evidence.filter((item) =>
-    state.bookmarks.includes(item.id),
+    bookmarks.includes(item.id),
   );
   const notes = evidence.filter((item) => state.notesStore[item.id]);
 

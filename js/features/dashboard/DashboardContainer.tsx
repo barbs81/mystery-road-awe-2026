@@ -2,7 +2,11 @@ import { state } from "../../state.js";
 import type { TimelineEvent } from "../../types.js";
 import { DashboardView } from "./DashboardView.js";
 
-export function DashboardContainer() {
+export type DashboardContainerProps = {
+  bookmarks: string[];
+};
+
+export function DashboardContainer({ bookmarks }: DashboardContainerProps) {
   const reviewedCount = state.allEvidence.filter(
     (evidence) => evidence.status.toLowerCase() === "reviewed",
   ).length;
@@ -19,7 +23,7 @@ export function DashboardContainer() {
       caseData={state.caseData}
       peopleCount={state.allPeople.length}
       locationsCount={state.allLocations.length}
-      bookmarkCount={state.bookmarks.length}
+      bookmarkCount={bookmarks.length}
       reviewedCount={reviewedCount}
       progress={progress}
       evidenceCount={state.allEvidence.length}

@@ -8,29 +8,25 @@ import {
   getRelevanceBadgeClass,
   getStatusBadgeClass,
 } from "../../utils.js";
-import { saveBookmarksToStorage, saveNoteForEvidence } from "../../storage.js";
+import { saveNoteForEvidence } from "../../storage.js";
 import type { Evidence, Location, Person } from "../../types.js";
 
 type EvidenceSort = "date-desc" | "date-asc" | "title-asc" | "title-desc";
-
-function toggleBookmarkId(bookmarkIds: string[], evidenceId: string): string[] {
-  if (bookmarkIds.includes(evidenceId)) {
-    return bookmarkIds.filter((id) => id !== evidenceId);
-  }
-
-  return [...bookmarkIds, evidenceId];
-}
 
 export type EvidenceCatalogueViewProps = {
   evidence: Evidence[];
   people: Person[];
   locations: Location[];
+  bookmarks: string[];
+  onToggleBookmark: (evidenceId: string) => void;
 };
 
 export function EvidenceCatalogueView({
   evidence,
   people,
   locations,
+  bookmarks,
+  onToggleBookmark,
 }: EvidenceCatalogueViewProps) {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -42,7 +38,6 @@ export function EvidenceCatalogueView({
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(
     null,
   );
-  const [, setBookmarkVersion] = useState(0);
 
   const types = [...new Set(evidence.map((item) => item.type.toLowerCase()))];
   const selectedPerson = people.find((person) => person.id === personFilter);
@@ -76,14 +71,11 @@ export function EvidenceCatalogueView({
   );
 
   function toggleBookmark(item: Evidence) {
-    state.bookmarks = toggleBookmarkId(state.bookmarks, item.id);
-    saveBookmarksToStorage();
-    setBookmarkVersion((version) => version + 1);
-    window.dispatchEvent(new Event("appdatachange"));
+    onToggleBookmark(item.id);
   }
 
   function stateBookmarksContain(id: string) {
-    return state.bookmarks.includes(id);
+    return bookmarks.includes(id);
   }
 
   function saveNote(event: FormEvent<HTMLFormElement>) {
