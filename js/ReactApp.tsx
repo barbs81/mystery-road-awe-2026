@@ -3,17 +3,21 @@ import { HashRouter } from "react-router-dom";
 import { Header } from "./app/Header.js";
 import { RouteContent } from "./app/RouteContent.js";
 import { state } from "./state.js";
-import { saveBookmarksToStorage } from "./storage.js";
+import { saveBookmarksToStorage, saveNoteForEvidence } from "./storage.js";
 
 export default function App() {
   const [, setDataVersion] = useState(0);
   const [bookmarks, setBookmarks] = useState<string[]>(() => [
     ...state.bookmarks,
   ]);
+  const [notes, setNotes] = useState<Record<string, string>>(() => ({
+    ...state.notesStore,
+  }));
 
   useEffect(() => {
     const handleDataChange = () => {
       setBookmarks([...state.bookmarks]);
+      setNotes({ ...state.notesStore });
       setDataVersion((version) => version + 1);
     };
     window.addEventListener("appdatachange", handleDataChange);
@@ -30,6 +34,11 @@ export default function App() {
     saveBookmarksToStorage();
   }
 
+  function saveNote(evidenceId: string, text: string) {
+    saveNoteForEvidence(evidenceId, text);
+    setNotes({ ...state.notesStore });
+  }
+
   useEffect(() => {
     const legacyContent = document.getElementById("app");
     legacyContent?.classList.add("react-dashboard-hidden");
@@ -38,7 +47,12 @@ export default function App() {
   return (
     <HashRouter>
       <Header />
-      <RouteContent bookmarks={bookmarks} onToggleBookmark={toggleBookmark} />
+      <RouteContent
+        bookmarks={bookmarks}
+        notes={notes}
+        onToggleBookmark={toggleBookmark}
+        onSaveNote={saveNote}
+      />
     </HashRouter>
   );
 }

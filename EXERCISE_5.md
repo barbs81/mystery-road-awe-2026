@@ -1890,7 +1890,57 @@ So mechanically, lifting state involved:
 
 This gives one React-owned source of truth and a clear top-down data flow.
 
-- [ ] What would go wrong (be specific) if you had instead kept a separate `useState` for bookmarks inside each of the Dashboard, Evidence, and Workspace components?
+- [x] What would go wrong (be specific) if you had instead kept a separate `useState` for bookmarks inside each of the Dashboard, Evidence, and Workspace components?
+
+Keeping a separate `useState` for bookmarks in each component would create three independent copies of the same information.
+
+For example:
+
+```tsx
+// Dashboard
+const [bookmarks, setBookmarks] = useState<string[]>([]);
+
+// Evidence
+const [bookmarks, setBookmarks] = useState<string[]>([]);
+
+// Workspace
+const [bookmarks, setBookmarks] = useState<string[]>([]);
+```
+
+### Specific problems
+
+1. **Evidence and Dashboard could disagree**
+
+   If the user bookmarks an item in Evidence, only Evidence’s local state would update. Dashboard’s local state would still contain the old list, so its count would remain stale.
+
+   Example:
+
+   ```text
+   Evidence: 3 bookmarks
+   Dashboard: 2 bookmarks
+   ```
+
+2. **Evidence and Workspace could disagree**
+
+   The bookmark could appear active in Evidence but not appear in Workspace, because Workspace would still have its own old array.
+
+3. **Updates would require synchronization code**
+
+   You would need custom events, shared storage, or manually passed callbacks to keep all three copies synchronized. That recreates the source-of-truth problem rather than solving it.
+
+4. **Navigation could reset state**
+
+   If a component unmounted during route navigation, its local bookmark state could be destroyed and recreated with a default value.
+
+5. **The same bookmark could be stored inconsistently**
+
+   One component might add the ID while another removes it, creating conflicting UI results.
+
+6. **Persistence would become error-prone**
+
+   Each component might save its own version to `localStorage`, and whichever one saved last could overwrite changes made by another component.
+
+With lifted state, there is one `bookmarks` array in `App`. Evidence changes it through a callback, while Dashboard and Workspace derive their displays from the same current array. That makes the data flow predictable and prevents the views from drifting apart.
 
 ---
 
@@ -1898,14 +1948,427 @@ This gives one React-owned source of truth and a clear top-down data flow.
 
 **Tasks**
 
-- [ ] From wherever you lifted bookmark state to (Demo 5), pass a callback (e.g. `onToggleBookmark`) down through props to every component that needs to trigger a change, rather than letting child components reach up and mutate anything themselves.
+- [x] From wherever you lifted bookmark state to (Demo 5), pass a callback (e.g. `onToggleBookmark`) down through props to every component that needs to trigger a change, rather than letting child components reach up and mutate anything themselves.
+
+I’ll verify the existing callback flow, then update the exercise checklist if the implementation already satisfies Demo 6 Task 1 and run the focused validation.
+
+Read , lines 1 to 220
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx",
+"view_range": [
+1,
+220
+]
+}
+
+Read , lines 1 to 220
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\app\\RouteContent.tsx",
+"view_range": [
+1,
+220
+]
+}
+
+Read , lines 1 to 260
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\evidence\\EvidenceCatalogueView.tsx",
+"view_range": [
+1,
+260
+]
+}
+
+Search for `Demo 6|onToggleBookmark|Task 1`
+
+Search for `state\.bookmarks|setBookmarks|onToggleBookmark|toggleBookmark`
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\workspace\\WorkspaceView.tsx",
+"view_range": [
+1,
+100
+]
+}
+
+Read , lines 1970 to 2010
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\EXERCISE_5.md",
+"view_range": [
+1970,
+2010
+]
+}
+
+The implementation is already wired correctly: `App` owns the setter, `RouteContent` forwards the callback, and `EvidenceCatalogueView` is the only current child that triggers bookmark changes. I’ll record Demo 6 Task 1 as complete without claiming the separate Demo 6 interaction task.
+
+Edit
+
+The checklist and notes now document the completed callback-prop flow. I’ll run the project’s build and lint checks to confirm the existing implementation remains valid.
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Demo 6 Task 1 is complete.
+
+The callback flow is:
+
+```text
+App
+  └─ onToggleBookmark
+      └─ RouteContent
+          └─ EvidenceCatalogueView
+              └─ onClick → onToggleBookmark(item.id)
+```
+
+Changes confirmed:
+
+- `App` owns the `bookmarks` state and `toggleBookmark` function in `ReactApp.tsx`.
+- `RouteContent` passes `onToggleBookmark` down in `RouteContent.tsx`.
+- `EvidenceCatalogueView` calls the callback when a bookmark button is clicked in `EvidenceCatalogueView.tsx`.
+- The child does not directly mutate `App` state or the bookmark array.
+- Dashboard and Workspace only read the `bookmarks` prop because they do not currently trigger bookmark changes.
+- The checklist and implementation notes were added to `EXERCISE_5.md`.
+
+Validation passed:
+
+- `npm run build`
+- `npm run lint`
+
+- [x] Do the same for at least one more interaction that needs to affect state owned by a parent (e.g. saving a note, or changing evidence review status from the detail view).
+
+I’ll use note saving as the second callback interaction: move the React-visible notes state into `App`, pass `onSaveNote` through the route layer to Evidence, and pass the notes data to Workspace so the parent-owned update is observable there too.
+
+Read , lines 1 to 160
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\state.ts",
+"view_range": [
+1,
+160
+]
+}
+
+Read , lines 1 to 220
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\storage.ts",
+"view_range": [
+1,
+220
+]
+}
+
+Read , lines 240 to 330
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\evidence\\EvidenceCatalogueView.tsx",
+"view_range": [
+240,
+330
+]
+}
+
+Search for `notesStore|saveNoteForEvidence|appdatachange`
+
+"Apply Patch" failed
+Completed with input: {"path":"C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\workspace\\WorkspaceView.tsx"}
+Tool execution failed: Error: Failed to find expected lines in C:\Users\barbs\VS Programs\Advance Web Engineering\Exercise 1\mystery-road-awe-2026\EXERCISE_5.md:
+
 - [ ] Do the same for at least one more interaction that needs to affect state owned by a parent (e.g. saving a note, or changing evidence review status from the detail view).
+
+The code changes were applied; the checklist hunk only missed because the task text has spacing/formatting differences. I’ll inspect the resulting signatures and mark the exact checklist line, then validate.
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx",
+"view_range": [
+1,
+100
+]
+}
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\app\\RouteContent.tsx",
+"view_range": [
+1,
+100
+]
+}
+
+Read , lines 1 to 95
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\workspace\\WorkspaceView.tsx",
+"view_range": [
+1,
+95
+]
+}
+
+Read , lines 1970 to 1985
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\EXERCISE_5.md",
+"view_range": [
+1970,
+1985
+]
+}
+
+Read , lines 1980 to 2010
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\EXERCISE_5.md",
+"view_range": [
+1980,
+2010
+]
+}
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\evidence\\EvidenceCatalogueView.tsx",
+"view_range": [
+1,
+100
+]
+}
+
+Search for `Do the same for at least one more|Tasks|Demo 6`
+
+Edit
+
+The second interaction is now documented as complete: note saving travels from the Evidence form to `App` through `onSaveNote`, and Workspace receives the updated parent-owned notes. I’ll verify type-checking, build, and lint.
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Demo 6 Task 2 is complete using note saving as the second parent-owned interaction.
+
+### Callback flow
+
+```text
+App
+  └─ onSaveNote
+      └─ RouteContent
+          └─ EvidenceCatalogueView
+              └─ note form onSubmit → onSaveNote(id, note)
+```
+
+### Changes made
+
+- `App` now owns the React-visible `notes` state in `ReactApp.tsx`.
+- `App` defines the parent callback:
+
+  ```tsx
+  function saveNote(evidenceId: string, text: string) {
+    saveNoteForEvidence(evidenceId, text);
+    setNotes({ ...state.notesStore });
+  }
+  ```
+
+- `RouteContent` passes `onSaveNote` to `EvidenceCatalogueView.tsx`.
+- The Evidence form calls:
+
+  ```tsx
+  onSaveNote(selectedEvidence.id, note);
+  ```
+
+- The Evidence component no longer directly saves the note or dispatches the data-change event.
+- Updated notes are passed to `WorkspaceView.tsx`, which derives its note list from the `notes` prop.
+- The task and explanation were recorded in `EXERCISE_5.md`.
+
+Validation passed:
+
+- `npm run build`
+- `npm run lint`
+
+### Demo 6 Task 2 implementation
+
+Note saving now follows the same parent-owned callback pattern. `App` owns the React-visible `notes` state and defines `saveNote`. `RouteContent` passes `onSaveNote` to `EvidenceCatalogueView`, and the Evidence detail form calls `onSaveNote(selectedEvidence.id, note)` instead of writing to shared state directly. The updated notes object is also passed to `WorkspaceView`, which derives its notes list from that prop.
+
+Yes, that statement is correct.
+
+More specifically:
+
+- `App` owns the React `notes` state.
+- `App` defines the `saveNote` callback.
+- `RouteContent` passes that callback through props.
+- `EvidenceCatalogueView` calls the callback when its note form is submitted.
+- The Evidence component no longer directly updates `state.notesStore`.
+- `App` updates its `notes` state after saving.
+- The updated `notes` object is passed to `WorkspaceView`.
+- `WorkspaceView` derives its displayed notes from the `notes` prop.
+
+The complete flow is:
+
+```text
+Evidence form submission
+  → onSaveNote(id, note)
+  → App.saveNote()
+  → saveNoteForEvidence()
+  → setNotes()
+  → Workspace receives updated notes
+  → Workspace re-renders
+```
+
+One subtle detail: `saveNoteForEvidence` still updates the legacy `state.notesStore` for persistence and compatibility, but the React components communicate through the parent-owned `notes` state and callback.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why can't (or shouldn't) a deeply nested child component just directly modify state that lives in a distant ancestor? What does passing a callback down get you instead?
-- [ ] Trace one callback all the way from where it's defined (with the actual `useState` setter
-      inside it) down to the component that calls it. How many component layers does it pass through, and does that feel like "too many". Is prop drilling becoming a real problem here?
+- [x] Why can't (or shouldn't) a deeply nested child component just directly modify state that lives in a distant ancestor? What does passing a callback down get you instead?
+
+A deeply nested child should not directly modify state owned by a distant ancestor because React state is intended to have a clear owner and one-way data flow.
+
+### Problems with direct modification
+
+1. **It breaks component boundaries**
+
+   The child becomes tightly coupled to the ancestor’s implementation. It must know where the state lives and how that state is structured.
+
+2. **It creates hidden dependencies**
+
+   A component may appear reusable, but internally it depends on a specific global object or ancestor state shape.
+
+3. **It makes updates harder to trace**
+
+   If several components can directly change the same state, it becomes difficult to determine which component caused a change.
+
+4. **It can bypass React’s update mechanism**
+
+   Directly changing an object such as:
+
+   ```tsx
+   state.notesStore[id] = note;
+   ```
+
+   does not automatically tell React that it needs to render again. This can produce stale UI.
+
+5. **It encourages duplicated or inconsistent state**
+
+   Multiple components may keep their own copies and update them differently, causing Dashboard, Evidence, and Workspace to disagree.
+
+### What passing a callback provides
+
+The ancestor keeps ownership of the state and exposes a controlled operation:
+
+```tsx
+function saveNote(evidenceId: string, text: string) {
+  saveNoteForEvidence(evidenceId, text);
+  setNotes({ ...state.notesStore });
+}
+```
+
+The callback is passed down through props:
+
+```tsx
+<RouteContent onSaveNote={saveNote} />
+```
+
+Eventually, the child calls it:
+
+```tsx
+onSaveNote(selectedEvidence.id, note);
+```
+
+This gives:
+
+- **One source of truth:** `App` owns `notes`.
+- **Controlled updates:** only the parent decides how notes change.
+- **One-way data flow:** state goes down, events go up.
+- **Automatic re-rendering:** the parent calls `setNotes` with a new object.
+- **Better traceability:** the update path is explicit.
+- **More reusable children:** the child only knows it has an `onSaveNote` function, not where the data is stored.
+
+In this application:
+
+```text
+App owns notes
+  ↓ passes notes and onSaveNote
+RouteContent
+  ↓ passes them to feature views
+Evidence form calls onSaveNote
+  ↑ callback runs in App
+App updates notes
+  ↓ React re-renders Workspace with new notes
+```
+
+Passing a callback is therefore not merely a workaround for reaching upward. It creates a predictable contract between the parent and child while preserving React’s one-way data flow.
+
+- [x] Trace one callback all the way from where it's defined (with the actual `useState` setter inside it) down to the component that calls it. How many component layers does it pass through, and does that feel like "too many". Is prop drilling becoming a real problem here?
+
+Using the `onSaveNote` callback:
+
+### 1. Defined in `App`
+
+In `ReactApp.tsx`, `App` owns the state and the setter:
+
+```tsx
+const [notes, setNotes] = useState<Record<string, string>>({
+  ...state.notesStore,
+});
+
+function saveNote(evidenceId: string, text: string) {
+  saveNoteForEvidence(evidenceId, text);
+  setNotes({ ...state.notesStore });
+}
+```
+
+The `setNotes` call creates a new object, which causes React to re-render.
+
+### 2. Passed through `RouteContent`
+
+`App` passes the callback to `RouteContent.tsx`:
+
+```tsx
+<RouteContent notes={notes} onSaveNote={saveNote} />
+```
+
+`RouteContent` then forwards it to `EvidenceCatalogueView`:
+
+```tsx
+<EvidenceCatalogueView notes={notes} onSaveNote={onSaveNote} />
+```
+
+### 3. Called in `EvidenceCatalogueView`
+
+The Evidence detail form calls the callback:
+
+```tsx
+function saveNote(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+
+  if (!selectedEvidence) return;
+
+  const formData = new FormData(event.currentTarget);
+  const note = String(formData.get("note") ?? "");
+
+  onSaveNote(selectedEvidence.id, note);
+}
+```
+
+The flow is:
+
+```text
+App
+  ↓ passes onSaveNote
+RouteContent
+  ↓ passes onSaveNote
+EvidenceCatalogueView
+  ↓ calls onSaveNote(id, note)
+App.saveNote()
+  ↓ calls setNotes(...)
+React re-renders
+```
+
+There are **two component layers involved in the path**:
+
+1. `App` — defines the callback.
+2. `RouteContent` — forwards it.
+3. `EvidenceCatalogueView` — calls it.
+
+`RouteContent` is the one intermediate prop-drilling layer. This does **not** feel excessive for this application. The route component is already responsible for connecting the top-level app state to the routed feature views, so forwarding the callback is understandable and easy to trace.
+
+Prop drilling would become a real problem if the callback had to pass through many unrelated components, perhaps five or more layers, where most components only forwarded the prop without using it. At the current size, lifting the state and passing the callback through `RouteContent` is simpler than introducing Context or a separate state-management library.
 
 ---
 
@@ -1913,15 +2376,260 @@ This gives one React-owned source of truth and a clear top-down data flow.
 
 **Tasks**
 
-- [ ] Identify the Evidence Catalogue's combined filter state (search term, type, person, location, status, relevance, and sort order — 7+ related values that often change together or need to be reset together) as a single non-trivial state domain, and replace its `useState` calls with a single `useReducer`.
-- [ ] Implement at least 3 distinct action types (e.g. `SET_FILTER`, `SET_SORT`, `CLEAR_FILTERS`).
+- [x] Identify the Evidence Catalogue's combined filter state (search term, type, person, location, status, relevance, and sort order — 7+ related values that often change together or need to be reset together) as a single non-trivial state domain, and replace its `useState` calls with a single `useReducer`.
+
+I’ll replace the seven related filter/sort states with one reducer, update every control and reset path to dispatch actions, then mark Demo 7 Task 1 and run build/lint.
+
+Read , lines 1 to 230
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\evidence\\EvidenceCatalogueView.tsx",
+"view_range": [
+1,
+230
+]
+}
+
+Search for `setSearch|setTypeFilter|setPersonFilter|setLocationFilter|setStatusFilter|set...`
+
+Edit
+
+Edit
+
+The reducer now owns the complete filter domain, while selected evidence remains independent UI state. I’ll run build and lint to catch any TypeScript or formatting issues.
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Demo 7 Task 1 is complete.
+
+In `EvidenceCatalogueView.tsx`, the seven related values are now managed by one `useReducer`:
+
+- Search term
+- Type filter
+- Person filter
+- Location filter
+- Status filter
+- Relevance filter
+- Sort order
+
+The reducer supports:
+
+```tsx
+type EvidenceFiltersAction =
+  | { type: "set-filter"; ... }
+  | { type: "set-sort"; ... }
+  | { type: "clear-filters" };
+```
+
+Each input dispatches an action, for example:
+
+```tsx
+dispatchFilters({
+  type: "set-filter",
+  field: "search",
+  value: event.target.value,
+});
+```
+
+The reset button now uses one action:
+
+```tsx
+dispatchFilters({ type: "clear-filters" });
+```
+
+This makes resetting all related filter values consistent and keeps the filter state as one coherent domain. The selected evidence ID remains separate because it is unrelated to filtering and sorting.
+
+The task and implementation explanation were recorded in `EXERCISE_5.md`.
+
+Validation passed:
+
+- `npm run build`
+- `npm run lint`
+
+- [x] Implement at least 3 distinct action types (e.g. `SET_FILTER`, `SET_SORT`, `CLEAR_FILTERS`).
+
+The reducer already has three distinct action types, so I’ll confirm their usages, mark Demo 7 Task 2 complete, and rerun the focused checks.
+
+Search for `type: "(set-filter|set-sort|clear-filters)"|case "(set-filter|set-sort|clear-...`
+
+Read , lines 2070 to 2100
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\EXERCISE_5.md",
+"view_range": [
+2070,
+2100
+]
+}
+
+Search for `Implement at least 3 distinct|Demo 7 Task 1 implementation|Demo 7`
+
+Edit
+
+All three reducer actions are present and now documented in the checklist. I’ll validate the unchanged implementation once more.
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Demo 7 Task 2 is complete.
+
+The reducer in `EvidenceCatalogueView.tsx` implements three distinct action types:
+
+```tsx
+type EvidenceFiltersAction =
+  | { type: "set-filter"; ... }
+  | { type: "set-sort"; value: EvidenceSort }
+  | { type: "clear-filters" };
+```
+
+They are used as follows:
+
+- `set-filter` updates search, type, person, location, status, or relevance.
+- `set-sort` updates the sort order.
+- `clear-filters` resets all filter fields and restores the default sort order.
+
+The task explanation was added to `EXERCISE_5.md`.
+
+Validation passed:
+
+- `npm run build`
+- `npm run lint`
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why is this particular piece of state ("evidence filters") a better fit for `useReducer` than for a pile of individual `useState` calls? What specifically got easier once you switched?
-- [ ] Show your `CLEAR_FILTERS` action. How does a reducer make "reset several related values at once, consistently" easier to get right than resetting them individually?
-- [ ] Is `useReducer` fundamentally different from `useState`, or is `useState` essentially a
-      special case of the same underlying idea? Justify your answer.
+- [x] Why is this particular piece of state ("evidence filters") a better fit for `useReducer` than for a pile of individual `useState` calls? What specifically got easier once you switched?
+
+The Evidence filters are a good fit for `useReducer` because they form one related state domain rather than seven unrelated values.
+
+The fields are:
+
+```text
+search
+typeFilter
+personFilter
+locationFilter
+statusFilter
+relevanceFilter
+sort
+```
+
+They are related because they all control the same derived `filteredEvidence` list, and they often need to be reset together.
+
+With separate `useState` calls, every update and reset would need its own setter:
+
+```tsx
+setSearch("");
+setTypeFilter("");
+setPersonFilter("");
+setLocationFilter("");
+setStatusFilter("");
+setRelevanceFilter("");
+setSort("date-desc");
+```
+
+That is repetitive and makes it easier to forget a field when adding a new filter.
+
+With the reducer, the state is grouped into one object:
+
+```tsx
+const [filters, dispatchFilters] = useReducer(
+  evidenceFiltersReducer,
+  initialEvidenceFilters,
+);
+```
+
+Individual changes are expressed as actions:
+
+```tsx
+dispatchFilters({
+  type: "set-filter",
+  field: "search",
+  value: event.target.value,
+});
+```
+
+Sorting uses its own action:
+
+```tsx
+dispatchFilters({
+  type: "set-sort",
+  value: event.target.value as EvidenceSort,
+});
+```
+
+Resetting everything uses one action:
+
+```tsx
+dispatchFilters({ type: "clear-filters" });
+```
+
+### What became easier
+
+- All related filter values are kept in one clearly defined object.
+- Each update follows a consistent action pattern.
+- Resetting every filter is handled in one place.
+- Adding another filter requires updating the state type and reducer rather than adding another independent setter throughout the component.
+- The reducer makes the valid state transitions explicit and easier to inspect.
+- The filtering logic reads from one `filters` object, so it is clear which values control the derived list.
+
+`useReducer` is not automatically better for every form. It is useful here because the filters are numerous, related, and have coordinated actions such as “clear everything.”
+
+- [x] Show your `CLEAR_FILTERS` action. How does a reducer make "reset several related values at once, consistently" easier to get right than resetting them individually?
+
+The `CLEAR_FILTERS` action is implemented as:
+
+```tsx
+case "clear-filters":
+  return initialEvidenceFilters;
+```
+
+The action is dispatched by the Clear filters button:
+
+```tsx
+onClick={() => dispatchFilters({ type: "clear-filters" })}
+```
+
+The initial state is defined in one place:
+
+```tsx
+const initialEvidenceFilters: EvidenceFilters = {
+  search: "",
+  typeFilter: "",
+  personFilter: "",
+  locationFilter: "",
+  statusFilter: "",
+  relevanceFilter: "",
+  sort: "date-desc",
+};
+```
+
+### Why this is safer
+
+With separate `useState` calls, the reset logic would need to manually call every setter:
+
+```tsx
+setSearch("");
+setTypeFilter("");
+setPersonFilter("");
+setLocationFilter("");
+setStatusFilter("");
+setRelevanceFilter("");
+setSort("date-desc");
+```
+
+That approach is more error-prone because a newly added filter could be forgotten in the reset handler. It also spreads the definition of the reset behavior across several setter calls.
+
+With the reducer:
+
+1. The button dispatches one action.
+2. The reducer handles the reset in one central location.
+3. Returning `initialEvidenceFilters` resets every related field together.
+4. The default values are defined once and reused consistently.
+
+This means the clear operation cannot accidentally reset six fields while leaving the seventh or the sort order unchanged.
+
+- [ ] Is `useReducer` fundamentally different from `useState`, or is `useState` essentially a special case of the same underlying idea? Justify your answer.
 
 ---
 

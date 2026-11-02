@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Panel } from "../../components/Panel.js";
-import { state } from "../../state.js";
 import type { Evidence, Person } from "../../types.js";
 
 const HYPOTHESIS_STORAGE_KEY = "remotion_hypothesis";
@@ -11,12 +10,14 @@ export type WorkspaceViewProps = {
   evidence: Evidence[];
   people: Person[];
   bookmarks: string[];
+  notes: Record<string, string>;
 };
 
 export function WorkspaceView({
   evidence,
   people,
   bookmarks,
+  notes,
 }: WorkspaceViewProps) {
   const [hypothesisSaved, setHypothesisSaved] = useState(false);
   const [suspectId, setSuspectId] = useState("");
@@ -28,7 +29,7 @@ export function WorkspaceView({
   const bookmarkedEvidence = evidence.filter((item) =>
     bookmarks.includes(item.id),
   );
-  const notes = evidence.filter((item) => state.notesStore[item.id]);
+  const evidenceWithNotes = evidence.filter((item) => notes[item.id]);
 
   function saveHypothesis(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,13 +70,13 @@ export function WorkspaceView({
             <p className="hint-text">
               Notes are attached to evidence items from the Evidence view.
             </p>
-            {notes.length === 0 ? (
+            {evidenceWithNotes.length === 0 ? (
               <p>No notes yet.</p>
             ) : (
-              notes.map((item) => (
+              evidenceWithNotes.map((item) => (
                 <div className="mini-list-item" key={item.id}>
                   <strong>{item.id}</strong> — {item.title}
-                  <div>{state.notesStore[item.id]}</div>
+                  <div>{notes[item.id]}</div>
                 </div>
               ))
             )}

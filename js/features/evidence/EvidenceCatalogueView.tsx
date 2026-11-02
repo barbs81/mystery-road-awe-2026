@@ -1,24 +1,67 @@
-import { useState } from "react";
+import { useReducer, useState } from "react";
 import type { FormEvent } from "react";
 import { Panel } from "../../components/Panel.js";
-import { state } from "../../state.js";
 import {
   evidenceMentionsPerson,
   formatDate,
   getRelevanceBadgeClass,
   getStatusBadgeClass,
 } from "../../utils.js";
-import { saveNoteForEvidence } from "../../storage.js";
 import type { Evidence, Location, Person } from "../../types.js";
 
 type EvidenceSort = "date-desc" | "date-asc" | "title-asc" | "title-desc";
+
+type EvidenceFilters = {
+  search: string;
+  typeFilter: string;
+  personFilter: string;
+  locationFilter: string;
+  statusFilter: string;
+  relevanceFilter: string;
+  sort: EvidenceSort;
+};
+
+type EvidenceFiltersAction =
+  | {
+      type: "set-filter";
+      field: Exclude<keyof EvidenceFilters, "sort">;
+      value: string;
+    }
+  | { type: "set-sort"; value: EvidenceSort }
+  | { type: "clear-filters" };
+
+const initialEvidenceFilters: EvidenceFilters = {
+  search: "",
+  typeFilter: "",
+  personFilter: "",
+  locationFilter: "",
+  statusFilter: "",
+  relevanceFilter: "",
+  sort: "date-desc",
+};
+
+function evidenceFiltersReducer(
+  filters: EvidenceFilters,
+  action: EvidenceFiltersAction,
+): EvidenceFilters {
+  switch (action.type) {
+    case "set-filter":
+      return { ...filters, [action.field]: action.value };
+    case "set-sort":
+      return { ...filters, sort: action.value };
+    case "clear-filters":
+      return initialEvidenceFilters;
+  }
+}
 
 export type EvidenceCatalogueViewProps = {
   evidence: Evidence[];
   people: Person[];
   locations: Location[];
   bookmarks: string[];
+  notes: Record<string, string>;
   onToggleBookmark: (evidenceId: string) => void;
+  onSaveNote: (evidenceId: string, text: string) => void;
 };
 
 export function EvidenceCatalogueView({
@@ -26,44 +69,49 @@ export function EvidenceCatalogueView({
   people,
   locations,
   bookmarks,
+  notes,
   onToggleBookmark,
+  onSaveNote,
 }: EvidenceCatalogueViewProps) {
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [personFilter, setPersonFilter] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [relevanceFilter, setRelevanceFilter] = useState("");
-  const [sort, setSort] = useState<EvidenceSort>("date-desc");
+  const [filters, dispatchFilters] = useReducer(
+    evidenceFiltersReducer,
+    initialEvidenceFilters,
+  );
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(
     null,
   );
 
   const types = [...new Set(evidence.map((item) => item.type.toLowerCase()))];
-  const selectedPerson = people.find((person) => person.id === personFilter);
+  const selectedPerson = people.find(
+    (person) => person.id === filters.personFilter,
+  );
   const filteredEvidence = evidence
     .filter((item) => {
-      const searchTerm = search.trim().toLowerCase();
+      const searchTerm = filters.search.trim().toLowerCase();
       const haystack =
         `${item.title} ${item.summary} ${item.tags.join(" ")}`.toLowerCase();
       return (
         (!searchTerm || haystack.includes(searchTerm)) &&
-        (!typeFilter || item.type.toLowerCase() === typeFilter) &&
-        (!personFilter ||
+        (!filters.typeFilter ||
+          item.type.toLowerCase() === filters.typeFilter) &&
+        (!filters.personFilter ||
           (selectedPerson
             ? evidenceMentionsPerson(item, selectedPerson)
             : false)) &&
-        (!locationFilter || item.locationIds.includes(locationFilter)) &&
-        (!statusFilter || item.status.toLowerCase() === statusFilter) &&
-        (!relevanceFilter || item.relevance.toLowerCase() === relevanceFilter)
+        (!filters.locationFilter ||
+          item.locationIds.includes(filters.locationFilter)) &&
+        (!filters.statusFilter ||
+          item.status.toLowerCase() === filters.statusFilter) &&
+        (!filters.relevanceFilter ||
+          item.relevance.toLowerCase() === filters.relevanceFilter)
       );
     })
     .sort((a, b) => {
-      if (sort === "title-asc") return a.title.localeCompare(b.title);
-      if (sort === "title-desc") return b.title.localeCompare(a.title);
+      if (filters.sort === "title-asc") return a.title.localeCompare(b.title);
+      if (filters.sort === "title-desc") return b.title.localeCompare(a.title);
       const dateDifference =
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-      return sort === "date-asc" ? dateDifference : -dateDifference;
+      return filters.sort === "date-asc" ? dateDifference : -dateDifference;
     });
 
   const selectedEvidence = evidence.find(
@@ -83,8 +131,7 @@ export function EvidenceCatalogueView({
     if (!selectedEvidence) return;
     const formData = new FormData(event.currentTarget);
     const note = String(formData.get("note") ?? "");
-    saveNoteForEvidence(selectedEvidence.id, note);
-    window.dispatchEvent(new Event("appdatachange"));
+    onSaveNote(selectedEvidence.id, note);
   }
 
   return (
@@ -101,13 +148,25 @@ export function EvidenceCatalogueView({
               id="react-evidence-search"
               type="search"
               placeholder="Search evidence by title, summary, or tag..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              value={filters.search}
+              onChange={(event) =>
+                dispatchFilters({
+                  type: "set-filter",
+                  field: "search",
+                  value: event.target.value,
+                })
+              }
             />
             <select
               aria-label="Filter by type"
-              value={typeFilter}
-              onChange={(event) => setTypeFilter(event.target.value)}
+              value={filters.typeFilter}
+              onChange={(event) =>
+                dispatchFilters({
+                  type: "set-filter",
+                  field: "typeFilter",
+                  value: event.target.value,
+                })
+              }
             >
               <option value="">All types</option>
               {types.map((type) => (
@@ -118,8 +177,14 @@ export function EvidenceCatalogueView({
             </select>
             <select
               aria-label="Filter by person"
-              value={personFilter}
-              onChange={(event) => setPersonFilter(event.target.value)}
+              value={filters.personFilter}
+              onChange={(event) =>
+                dispatchFilters({
+                  type: "set-filter",
+                  field: "personFilter",
+                  value: event.target.value,
+                })
+              }
             >
               <option value="">All people</option>
               {people.map((person) => (
@@ -130,8 +195,14 @@ export function EvidenceCatalogueView({
             </select>
             <select
               aria-label="Filter by location"
-              value={locationFilter}
-              onChange={(event) => setLocationFilter(event.target.value)}
+              value={filters.locationFilter}
+              onChange={(event) =>
+                dispatchFilters({
+                  type: "set-filter",
+                  field: "locationFilter",
+                  value: event.target.value,
+                })
+              }
             >
               <option value="">All locations</option>
               {locations.map((location) => (
@@ -144,8 +215,14 @@ export function EvidenceCatalogueView({
           <div className="toolbar-row">
             <select
               aria-label="Filter by status"
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
+              value={filters.statusFilter}
+              onChange={(event) =>
+                dispatchFilters({
+                  type: "set-filter",
+                  field: "statusFilter",
+                  value: event.target.value,
+                })
+              }
             >
               <option value="">All statuses</option>
               <option value="unreviewed">Unreviewed</option>
@@ -154,8 +231,14 @@ export function EvidenceCatalogueView({
             </select>
             <select
               aria-label="Filter by relevance"
-              value={relevanceFilter}
-              onChange={(event) => setRelevanceFilter(event.target.value)}
+              value={filters.relevanceFilter}
+              onChange={(event) =>
+                dispatchFilters({
+                  type: "set-filter",
+                  field: "relevanceFilter",
+                  value: event.target.value,
+                })
+              }
             >
               <option value="">All relevance</option>
               <option value="unknown">Unknown</option>
@@ -164,8 +247,13 @@ export function EvidenceCatalogueView({
             </select>
             <select
               aria-label="Sort evidence"
-              value={sort}
-              onChange={(event) => setSort(event.target.value as EvidenceSort)}
+              value={filters.sort}
+              onChange={(event) =>
+                dispatchFilters({
+                  type: "set-sort",
+                  value: event.target.value as EvidenceSort,
+                })
+              }
             >
               <option value="date-desc">Newest first</option>
               <option value="date-asc">Oldest first</option>
@@ -175,15 +263,7 @@ export function EvidenceCatalogueView({
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={() => {
-                setSearch("");
-                setTypeFilter("");
-                setPersonFilter("");
-                setLocationFilter("");
-                setStatusFilter("");
-                setRelevanceFilter("");
-                setSort("date-desc");
-              }}
+              onClick={() => dispatchFilters({ type: "clear-filters" })}
             >
               Clear filters
             </button>
@@ -255,7 +335,7 @@ export function EvidenceCatalogueView({
                 name="note"
                 className="note-textarea"
                 rows={3}
-                defaultValue={state.notesStore[selectedEvidence.id] ?? ""}
+                defaultValue={notes[selectedEvidence.id] ?? ""}
                 placeholder="Add a private note about this evidence..."
               />
               <button type="submit" className="btn btn-primary btn-small">
