@@ -3277,13 +3277,54 @@ So the main difference is that the reusable component gives a single, typed, com
 
 **Tasks**
 
-- [ ] Install a routing library (React Router or an equivalent of your choice, justified) and replace the shell's placeholder navigation from Exercise 3 with real routes for at least Dashboard, People & Locations, and Timeline.
-- [ ] Convert the People/Locations tab toggle from local component state into two real, navigable, bookmarkable routes (e.g. `/team/people` and `/team/locations`) instead of a click handler that only changes what's shown without changing the URL.
+- [X] Install a routing library (React Router or an equivalent of your choice, justified) and replace the shell's placeholder navigation from Exercise 3 with real routes for at least Dashboard, People & Locations, and Timeline.
+- [X] Convert the People/Locations tab toggle from local component state into two real, navigable, bookmarkable routes (e.g. `/team/people` and `/team/locations`) instead of a click handler that only changes what's shown without changing the URL.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why does making the People/Locations tab a real route (versus keeping it as internal component state) matter for the user? Name a concrete capability the user gains.
-- [ ] What does your router do when the URL doesn't match any route you've defined? Compare this to how the vanilla app's `handleHashChange()` fell back to the dashboard for an invalid hash.
+- [X] Why does making the People/Locations tab a real route (versus keeping it as internal component state) matter for the user? Name a concrete capability the user gains.
+
+Making People and Locations real routes gives the user a URL that represents the exact page they are viewing.
+
+A concrete capability is **bookmarking and sharing a specific page**. For example, the user can bookmark or send:
+
+```text
+#/team/people
+```
+
+Another user who opens that link goes directly to the People page instead of always landing on a general People & Locations page and having to click a tab manually.
+
+It also means:
+
+- The browser Back and Forward buttons work between People and Locations.
+- The page can be refreshed without losing the selected view.
+- A link can open the Locations page directly.
+- The active navigation link reflects the current page.
+
+- [X] What does your router do when the URL doesn't match any route you've defined? Compare this to how the vanilla app's `handleHashChange()` fell back to the dashboard for an invalid hash.
+
+Our React Router uses a wildcard route:
+
+```tsx
+<Route path="*" element={<Navigate to="/dashboard" replace />} />
+```
+
+If the URL does not match any defined route, React Router redirects the user to:
+
+```text
+#/dashboard
+```
+
+The `replace` option replaces the invalid URL in the browser history, so pressing Back will not return to the invalid route.
+
+This is similar to the vanilla app’s `handleHashChange()` behavior. The vanilla code checked whether the hash matched a known route. If it did not, it treated the route as `"dashboard"` and rendered the Dashboard.
+
+The difference is where the fallback is implemented:
+
+- **Vanilla app:** `handleHashChange()` manually checks and corrects the hash.
+- **React Router:** the wildcard route handles all unmatched URLs and redirects declaratively.
+
+The React Router fallback is defined in `RouteContent.tsx` — the correct project path is `RouteContent.tsx`.
 
 ---
 
@@ -3291,15 +3332,102 @@ So the main difference is that the reusable component gives a single, typed, com
 
 **Tasks**
 
-- [ ] Add at least one route that takes a parameter (e.g. a person or location id in the URL, such as `/team/people/:personId`), and use that parameter inside the corresponding component to determine what to render.
-- [ ] Make at least one place in the app link to that parameterized route (not just typing the URL by hand). For example, a person's name in a related-evidence context, or a "view on team page" link.
+- [X] Add at least one route that takes a parameter (e.g. a person or location id in the URL, such as `/team/people/:personId`), and use that parameter inside the corresponding component to determine what to render.
+
+- [X] Make at least one place in the app link to that parameterized route (not just typing the URL by hand). For example, a person's name in a related-evidence context, or a "view on team page" link.
 
 **Questions** (depend on the tasks above)
 
-- [ ] How do you read a route parameter's value inside your component, and what type is it as far as TypeScript is concerned by default? What did you have to do to use it safely (e.g. what if the id in the URL doesn't match any real person)?
-- [ ] What's the practical difference, for the user, between `/team/people/nova-byte` (a route
-      param) and `/team/people?person=nova-byte` (a query param)? Why is one more appropriate than
-      the other for this specific case?
+- [X] How do you read a route parameter's value inside your component, and what type is it as far as TypeScript is concerned by default? What did you have to do to use it safely (e.g. what if the id in the URL doesn't match any real person)?
+
+Inside `PersonDetailView.tsx`, the parameter is read with React Router’s `useParams` hook:
+
+```tsx
+const { personId } = useParams<{ personId: string }>();
+```
+
+The route defines the parameter here:
+
+```tsx
+<Route
+  path="/team/people/:personId"
+  element={<PersonDetailView people={state.allPeople} />}
+/>
+```
+
+The `:personId` part tells React Router to capture that section of the URL.
+
+By default, route parameters are treated as strings, and a parameter may be `undefined` if it is missing. They are not automatically converted into a number or checked against the application’s data.
+
+We then safely search for a matching person:
+
+```tsx
+const person = people.find((candidate) => candidate.id === personId);
+```
+
+If a match exists, the person’s details are rendered. If there is no match—for example:
+
+```text
+#/team/people/does-not-exist
+```
+
+then `person` is `undefined`, and the component renders:
+
+```text
+Person not found
+No person matches the ID does-not-exist.
+```
+
+This prevents the app from trying to read properties such as `person.name` when no person exists. The important safety step is validating the URL value against the real `people` list before rendering person-specific data.
+
+- [X] What's the practical difference, for the user, between `/team/people/nova-byte` (a route param) and `/team/people?person=nova-byte` (a query param)? Why is one more appropriate than the other for this specific case?
+
+The practical difference is what the URL represents.
+
+### Route parameter
+
+```text
+/team/people/nova-byte
+```
+
+This identifies one specific person: **Nova Byte**. The application treats `nova-byte` as part of the resource’s identity and renders Nova Byte’s detail page.
+
+A route parameter is appropriate when the user is viewing one particular item.
+
+### Query parameter
+
+```text
+/team/people?person=nova-byte
+```
+
+This represents the general People page with an optional setting or filter. The `person` value could be used to filter, search, or preselect a person while remaining on the People collection page.
+
+Query parameters are appropriate for things such as:
+
+```text
+/team/people?role=engineer
+/timeline?person=nova-byte
+```
+
+These modify or filter a page rather than identify the page’s main resource.
+
+### Why the route parameter is more appropriate here
+
+The task displays a dedicated detail view for one person. Therefore:
+
+```text
+/team/people/nova-byte
+```
+
+communicates that Nova Byte is the specific resource being viewed. It also gives each person a distinct, bookmarkable URL.
+
+In our app, the hash-router version is:
+
+```text
+#/team/people/nova-byte
+```
+
+A query parameter would be more appropriate later for something like the Timeline task, where `?person=nova-byte` can preselect or filter timeline events without changing the main Timeline route.
 
 ---
 
@@ -3307,13 +3435,108 @@ So the main difference is that the reusable component gives a single, typed, com
 
 **Tasks**
 
-- [ ] On the Timeline view, read a query parameter (e.g. `?person=...`) when the page loads, and use it to determine the _initial_ rendered list (for example, pre-selecting a person filter if the app is opened via a link that includes one). Remember, the filter controls themselves don't need to be interactive yet. This is about parameterizing the initial render from the URL, not wiring `onChange`.
-- [ ] Do a final pass confirming: Dashboard, People & Locations, and Timeline are fully React, none of them use `innerHTML` or manual DOM creation anywhere, and all three are reachable via real, bookmarkable routes.
+- [X] On the Timeline view, read a query parameter (e.g. `?person=...`) when the page loads, and use it to determine the _initial_ rendered list (for example, pre-selecting a person filter if the app is opened via a link that includes one). Remember, the filter controls themselves don't need to be interactive yet. This is about parameterizing the initial render from the URL, not wiring `onChange`.
+
+
+- [X] Do a final pass confirming: Dashboard, People & Locations, and Timeline are fully React, none of them use `innerHTML` or manual DOM creation anywhere, and all three are reachable via real, bookmarkable routes.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why is reading a query parameter once, on initial render, still consistent with this exercise's "no state beyond what's necessary to render the initial view" rule? What would cross the line into "real interactivity" that's out of scope until Exercise 5?
-- [ ] What would you need to add to make Timeline's filters _actually_ filter the list when a user changes them? (You don't have to build it. Just name the concept you'd need)
-- [ ] Across the 3 views you've now fully migrated, what's one piece of duplicated logic or markup you noticed but didn't extract yet? Why didn't you, and would you if you had more time?
+- [X] Why is reading a query parameter once, on initial render, still consistent with this exercise's "no state beyond what's necessary to render the initial view" rule? What would cross the line into "real interactivity" that's out of scope until Exercise 5?
+
+Reading the query parameter once is consistent with the rule because the URL already contains the user’s requested view when the page loads. The Timeline simply reads that value and derives the initial list from it:
+
+```text
+#/timeline?person=nova-byte
+```
+
+It does not create separate React state for the filter or update the URL after the page loads. The query parameter is only used to decide what should be rendered initially.
+
+In our implementation, `useSearchParams` reads the `person` value, and the visible events are derived from:
+
+```tsx
+const visibleEvents = personId
+  ? selectedPerson
+    ? events.filter((event) => event.personIds.includes(selectedPerson.id))
+    : []
+  : events;
+```
+
+That remains presentational and initial-render logic.
+
+### What would be real interactivity?
+
+It would cross into the next exercise if the filter controls changed the rendered list while the user was using the page. For example:
+
+- Adding an `onChange` handler to the person dropdown.
+- Storing the selected person in `useState`.
+- Recalculating the events whenever the user changes the dropdown.
+- Updating the URL query parameter when the selection changes.
+- Adding multiple live filters that update the list immediately.
+
+Those features require ongoing state and event handling, which belongs in Exercise 5.
+
+- [X] What would you need to add to make Timeline's filters _actually_ filter the list when a user changes them? (You don't have to build it. Just name the concept you'd need)
+
+You would need to add **React state and event handlers**.
+
+For example:
+
+- Use `useState` to store the selected person, location, or event type.
+- Add an `onChange` handler to each filter control.
+- Update the state when the user changes a selection.
+- Derive the filtered timeline list from the current state on each render.
+
+Conceptually:
+
+```tsx
+const [selectedPerson, setSelectedPerson] = useState("");
+```
+
+Then the dropdown would update that state:
+
+```tsx
+<select
+  value={selectedPerson}
+  onChange={(event) => setSelectedPerson(event.target.value)}
+>
+```
+
+The timeline would then be derived from `selectedPerson`.
+
+If the filter should also be bookmarkable, the handler could update the URL query parameter as well. The main concepts needed are **state management**, **event handling**, and **derived rendering**.
+
+- [X] Across the 3 views you've now fully migrated, what's one piece of duplicated logic or markup you noticed but didn't extract yet? Why didn't you, and would you if you had more time?
+
+One piece of duplication is the repeated page shell markup in the Dashboard, People, Locations, and Timeline views:
+
+```tsx
+<main className="app-main react-route-content">
+  <section className="react-view">
+    ...
+  </section>
+</main>
+```
+
+Each view also repeats the pattern of rendering a page heading and one or more `Panel` components.
+
+I did not extract this into another shared component because the current duplication is small and the views are still easy to read. Creating a `PageLayout` component too early could make the simple page structure harder to follow by adding another abstraction.
+
+If the application grew, I would consider creating a typed reusable component such as:
+
+```tsx
+<PageLayout title="Timeline">
+  ...
+</PageLayout>
+```
+
+That component could centralize:
+
+- The shared `<main>` and `<section>` structure.
+- The page heading.
+- Common accessibility attributes.
+- Consistent page-level styling.
+
+I would extract it when the layout gained more shared behavior or when more views repeated the same structure—not solely because a few lines happen to be similar.
 
 ---

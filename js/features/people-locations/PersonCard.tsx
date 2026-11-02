@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { Person } from "../../types.js";
 
 export type PersonCardProps = {
@@ -14,7 +15,9 @@ export function PersonCard({ person }: PersonCardProps) {
           alt={`Portrait of ${person.name}`}
         />
         <div>
-          <h3>{person.name}</h3>
+          <h3>
+            <Link to={`/team/people/${person.id}`}>{person.name}</Link>
+          </h3>
           <div className="person-role">{person.role}</div>
         </div>
       </div>

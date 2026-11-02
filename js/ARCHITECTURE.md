@@ -12,7 +12,9 @@ js/
 │ │ └── DashboardView.tsx
 │ ├── people-locations/
 │ │ ├── LocationCard.tsx
-│ │ ├── PeopleLocationsView.tsx
+│ │ ├── LocationsView.tsx
+│ │ ├── PersonDetailView.tsx
+│ │ ├── PeopleView.tsx
 │ │ └── PersonCard.tsx
 │ └── timeline/
 │ ├── TimelineEventCard.tsx

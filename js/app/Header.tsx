@@ -1,16 +1,13 @@
-import { navigateTo, routes } from "./routes.js";
+import { NavLink } from "react-router-dom";
+import { routes } from "./routes.js";
 
-type HeaderProps = {
-  currentRoute: string;
-};
-
-export function Header({ currentRoute }: HeaderProps) {
+export function Header() {
   return (
     <header className="app-header">
       <div className="header-inner">
         <a
           className="brand"
-          href="#dashboard"
+          href="#/dashboard"
           aria-label="Project ReMotion dashboard"
         >
           <img
@@ -28,16 +25,16 @@ export function Header({ currentRoute }: HeaderProps) {
 
         <nav className="main-nav" aria-label="Main navigation">
           {routes.map((route) => (
-            <button
-              key={route.id}
-              type="button"
-              className={`nav-btn${currentRoute === route.id ? " active" : ""}`}
-              data-view={route.id}
-              aria-current={currentRoute === route.id ? "page" : undefined}
-              onClick={() => navigateTo(route.id)}
+            <NavLink
+              key={route.path}
+              to={route.path}
+              className={({ isActive }) =>
+                `nav-btn${isActive ? " active" : ""}`
+              }
+              end
             >
               {route.label}
-            </button>
+            </NavLink>
           ))}
         </nav>
       </div>
