@@ -3277,12 +3277,12 @@ So the main difference is that the reusable component gives a single, typed, com
 
 **Tasks**
 
-- [X] Install a routing library (React Router or an equivalent of your choice, justified) and replace the shell's placeholder navigation from Exercise 3 with real routes for at least Dashboard, People & Locations, and Timeline.
-- [X] Convert the People/Locations tab toggle from local component state into two real, navigable, bookmarkable routes (e.g. `/team/people` and `/team/locations`) instead of a click handler that only changes what's shown without changing the URL.
+- [x] Install a routing library (React Router or an equivalent of your choice, justified) and replace the shell's placeholder navigation from Exercise 3 with real routes for at least Dashboard, People & Locations, and Timeline.
+- [x] Convert the People/Locations tab toggle from local component state into two real, navigable, bookmarkable routes (e.g. `/team/people` and `/team/locations`) instead of a click handler that only changes what's shown without changing the URL.
 
 **Questions** (depend on the tasks above)
 
-- [X] Why does making the People/Locations tab a real route (versus keeping it as internal component state) matter for the user? Name a concrete capability the user gains.
+- [x] Why does making the People/Locations tab a real route (versus keeping it as internal component state) matter for the user? Name a concrete capability the user gains.
 
 Making People and Locations real routes gives the user a URL that represents the exact page they are viewing.
 
@@ -3301,7 +3301,7 @@ It also means:
 - A link can open the Locations page directly.
 - The active navigation link reflects the current page.
 
-- [X] What does your router do when the URL doesn't match any route you've defined? Compare this to how the vanilla app's `handleHashChange()` fell back to the dashboard for an invalid hash.
+- [x] What does your router do when the URL doesn't match any route you've defined? Compare this to how the vanilla app's `handleHashChange()` fell back to the dashboard for an invalid hash.
 
 Our React Router uses a wildcard route:
 
@@ -3332,13 +3332,13 @@ The React Router fallback is defined in `RouteContent.tsx` — the correct proje
 
 **Tasks**
 
-- [X] Add at least one route that takes a parameter (e.g. a person or location id in the URL, such as `/team/people/:personId`), and use that parameter inside the corresponding component to determine what to render.
+- [x] Add at least one route that takes a parameter (e.g. a person or location id in the URL, such as `/team/people/:personId`), and use that parameter inside the corresponding component to determine what to render.
 
-- [X] Make at least one place in the app link to that parameterized route (not just typing the URL by hand). For example, a person's name in a related-evidence context, or a "view on team page" link.
+- [x] Make at least one place in the app link to that parameterized route (not just typing the URL by hand). For example, a person's name in a related-evidence context, or a "view on team page" link.
 
 **Questions** (depend on the tasks above)
 
-- [X] How do you read a route parameter's value inside your component, and what type is it as far as TypeScript is concerned by default? What did you have to do to use it safely (e.g. what if the id in the URL doesn't match any real person)?
+- [x] How do you read a route parameter's value inside your component, and what type is it as far as TypeScript is concerned by default? What did you have to do to use it safely (e.g. what if the id in the URL doesn't match any real person)?
 
 Inside `PersonDetailView.tsx`, the parameter is read with React Router’s `useParams` hook:
 
@@ -3380,7 +3380,7 @@ No person matches the ID does-not-exist.
 
 This prevents the app from trying to read properties such as `person.name` when no person exists. The important safety step is validating the URL value against the real `people` list before rendering person-specific data.
 
-- [X] What's the practical difference, for the user, between `/team/people/nova-byte` (a route param) and `/team/people?person=nova-byte` (a query param)? Why is one more appropriate than the other for this specific case?
+- [x] What's the practical difference, for the user, between `/team/people/nova-byte` (a route param) and `/team/people?person=nova-byte` (a query param)? Why is one more appropriate than the other for this specific case?
 
 The practical difference is what the URL represents.
 
@@ -3435,14 +3435,13 @@ A query parameter would be more appropriate later for something like the Timelin
 
 **Tasks**
 
-- [X] On the Timeline view, read a query parameter (e.g. `?person=...`) when the page loads, and use it to determine the _initial_ rendered list (for example, pre-selecting a person filter if the app is opened via a link that includes one). Remember, the filter controls themselves don't need to be interactive yet. This is about parameterizing the initial render from the URL, not wiring `onChange`.
+- [x] On the Timeline view, read a query parameter (e.g. `?person=...`) when the page loads, and use it to determine the _initial_ rendered list (for example, pre-selecting a person filter if the app is opened via a link that includes one). Remember, the filter controls themselves don't need to be interactive yet. This is about parameterizing the initial render from the URL, not wiring `onChange`.
 
-
-- [X] Do a final pass confirming: Dashboard, People & Locations, and Timeline are fully React, none of them use `innerHTML` or manual DOM creation anywhere, and all three are reachable via real, bookmarkable routes.
+- [x] Do a final pass confirming: Dashboard, People & Locations, and Timeline are fully React, none of them use `innerHTML` or manual DOM creation anywhere, and all three are reachable via real, bookmarkable routes.
 
 **Questions** (depend on the tasks above)
 
-- [X] Why is reading a query parameter once, on initial render, still consistent with this exercise's "no state beyond what's necessary to render the initial view" rule? What would cross the line into "real interactivity" that's out of scope until Exercise 5?
+- [x] Why is reading a query parameter once, on initial render, still consistent with this exercise's "no state beyond what's necessary to render the initial view" rule? What would cross the line into "real interactivity" that's out of scope until Exercise 5?
 
 Reading the query parameter once is consistent with the rule because the URL already contains the user’s requested view when the page loads. The Timeline simply reads that value and derives the initial list from it:
 
@@ -3476,7 +3475,7 @@ It would cross into the next exercise if the filter controls changed the rendere
 
 Those features require ongoing state and event handling, which belongs in Exercise 5.
 
-- [X] What would you need to add to make Timeline's filters _actually_ filter the list when a user changes them? (You don't have to build it. Just name the concept you'd need)
+- [x] What would you need to add to make Timeline's filters _actually_ filter the list when a user changes them? (You don't have to build it. Just name the concept you'd need)
 
 You would need to add **React state and event handlers**.
 
@@ -3506,15 +3505,13 @@ The timeline would then be derived from `selectedPerson`.
 
 If the filter should also be bookmarkable, the handler could update the URL query parameter as well. The main concepts needed are **state management**, **event handling**, and **derived rendering**.
 
-- [X] Across the 3 views you've now fully migrated, what's one piece of duplicated logic or markup you noticed but didn't extract yet? Why didn't you, and would you if you had more time?
+- [x] Across the 3 views you've now fully migrated, what's one piece of duplicated logic or markup you noticed but didn't extract yet? Why didn't you, and would you if you had more time?
 
 One piece of duplication is the repeated page shell markup in the Dashboard, People, Locations, and Timeline views:
 
 ```tsx
 <main className="app-main react-route-content">
-  <section className="react-view">
-    ...
-  </section>
+  <section className="react-view">...</section>
 </main>
 ```
 
@@ -3525,9 +3522,7 @@ I did not extract this into another shared component because the current duplica
 If the application grew, I would consider creating a typed reusable component such as:
 
 ```tsx
-<PageLayout title="Timeline">
-  ...
-</PageLayout>
+<PageLayout title="Timeline">...</PageLayout>
 ```
 
 That component could centralize:
