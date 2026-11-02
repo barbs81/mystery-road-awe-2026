@@ -9,24 +9,14 @@ import { WorkspaceView } from "../features/workspace/WorkspaceView.js";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 export type RouteContentProps = {
-  bookmarks: string[];
   notes: Record<string, string>;
-  onToggleBookmark: (evidenceId: string) => void;
   onSaveNote: (evidenceId: string, text: string) => void;
 };
 
-export function RouteContent({
-  bookmarks,
-  notes,
-  onToggleBookmark,
-  onSaveNote,
-}: RouteContentProps) {
+export function RouteContent({ notes, onSaveNote }: RouteContentProps) {
   return (
     <Routes>
-      <Route
-        path="/dashboard"
-        element={<DashboardContainer bookmarks={bookmarks} />}
-      />
+      <Route path="/dashboard" element={<DashboardContainer />} />
       <Route
         path="/team/people"
         element={<PeopleView people={state.allPeople} />}
@@ -53,9 +43,7 @@ export function RouteContent({
             evidence={state.allEvidence}
             people={state.allPeople}
             locations={state.allLocations}
-            bookmarks={bookmarks}
             notes={notes}
-            onToggleBookmark={onToggleBookmark}
             onSaveNote={onSaveNote}
           />
         }
@@ -66,7 +54,6 @@ export function RouteContent({
           <WorkspaceView
             evidence={state.allEvidence}
             people={state.allPeople}
-            bookmarks={bookmarks}
             notes={notes}
           />
         }

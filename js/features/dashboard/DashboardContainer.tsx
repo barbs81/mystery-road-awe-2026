@@ -1,12 +1,10 @@
 import { state } from "../../state.js";
 import type { TimelineEvent } from "../../types.js";
+import { useBookmarks } from "../../contexts/BookmarkContext.js";
 import { DashboardView } from "./DashboardView.js";
 
-export type DashboardContainerProps = {
-  bookmarks: string[];
-};
-
-export function DashboardContainer({ bookmarks }: DashboardContainerProps) {
+export function DashboardContainer() {
+  const { bookmarks } = useBookmarks();
   const reviewedCount = state.allEvidence.filter(
     (evidence) => evidence.status.toLowerCase() === "reviewed",
   ).length;

@@ -2629,7 +2629,65 @@ With the reducer:
 
 This means the clear operation cannot accidentally reset six fields while leaving the seventh or the sort order unchanged.
 
-- [ ] Is `useReducer` fundamentally different from `useState`, or is `useState` essentially a special case of the same underlying idea? Justify your answer.
+- [x] Is `useReducer` fundamentally different from `useState`, or is `useState` essentially a special case of the same underlying idea? Justify your answer.
+
+`useReducer` and `useState` are not fundamentally different in their purpose. Both store state in a component and cause a re-render when that state changes.
+
+`useState` is essentially the simpler form of the same underlying idea:
+
+```tsx
+const [count, setCount] = useState(0);
+
+setCount(count + 1);
+```
+
+The component directly provides the next state value.
+
+With `useReducer`, the component dispatches an action and a reducer calculates the next state:
+
+```tsx
+const [filters, dispatchFilters] = useReducer(
+  evidenceFiltersReducer,
+  initialEvidenceFilters,
+);
+
+dispatchFilters({ type: "clear-filters" });
+```
+
+The reducer contains the transition logic:
+
+```tsx
+function evidenceFiltersReducer(
+  filters: EvidenceFilters,
+  action: EvidenceFiltersAction,
+): EvidenceFilters {
+  switch (action.type) {
+    case "set-filter":
+      return { ...filters, [action.field]: action.value };
+    case "set-sort":
+      return { ...filters, sort: action.value };
+    case "clear-filters":
+      return initialEvidenceFilters;
+  }
+}
+```
+
+Conceptually, `useState` could be viewed as a reducer that simply replaces the current state with the value supplied by its setter:
+
+```tsx
+function replaceState<T>(_current: T, next: T): T {
+  return next;
+}
+```
+
+The practical difference is how state transitions are organized:
+
+- `useState` is concise and works well for simple, independent values.
+- `useReducer` centralizes multiple related transitions and gives them named actions.
+- Both rely on React’s state update and render cycle.
+- Both should return new objects or arrays rather than mutate existing state.
+
+For the Evidence filters, `useReducer` is more suitable because search, filtering, sorting, and clearing are coordinated operations. For a simple value such as whether a panel is open, `useState` is clearer and less verbose.
 
 ---
 
@@ -2637,15 +2695,212 @@ This means the clear operation cannot accidentally reset six fields while leavin
 
 **Tasks**
 
-- [ ] Pick one piece of state from this exercise (bookmark state is a strong candidate, given Demo 6's prop-drilling question) and actually implement it via React Context, replacing the prop-drilled version.
-- [ ] Explain a short, honest decision: for _this specific app_, at its _current_ size, is Context actually the right call for this state, or is prop-drilling (or lifting state, without
-      Context) good enough? Be ready to defend whichever answer you land on.
+- [x] Pick one piece of state from this exercise (bookmark state is a strong candidate, given Demo 6's prop-drilling question) and actually implement it via React Context, replacing the prop-drilled version.
+
+I’ll replace the prop-drilled bookmark state with a typed React Context, keep `App` as the provider/owner for persistence, and update Evidence, Dashboard, and Workspace consumers to read from the context.
+
+Read , lines 1 to 120
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx",
+"view_range": [
+1,
+120
+]
+}
+
+Read , lines 1 to 110
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\app\\RouteContent.tsx",
+"view_range": [
+1,
+110
+]
+}
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\dashboard\\DashboardContainer.tsx",
+"view_range": [
+1,
+100
+]
+}
+
+Search for `bookmarks|onToggleBookmark`
+
+Edit , , , , ,
+
+Search for `Pick one piece of state|Demo 8`
+
+Edit
+
+Bookmark state is now provided through `BookmarkContext`, and the three consuming features no longer receive bookmark props. I’ll run the build and lint checks to verify the context migration.
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Demo 8 Task 1 is complete.
+
+Bookmark state now uses React Context instead of being passed through route and feature props.
+
+### Changes made
+
+Created `BookmarkContext.tsx` with:
+
+- `BookmarkContext`
+- `BookmarkProvider`
+- `useBookmarks()` hook
+
+`App` still owns the actual state and persistence logic in `ReactApp.tsx`, but now provides the bookmark data and callback through Context:
+
+```tsx
+<BookmarkProvider value={{ bookmarks, onToggleBookmark: toggleBookmark }}>
+  ...
+</BookmarkProvider>
+```
+
+The following components now consume bookmark state with `useBookmarks()`:
+
+- `DashboardContainer.tsx`
+- `EvidenceCatalogueView.tsx`
+- `WorkspaceView.tsx`
+
+`RouteContent` no longer prop-drills:
+
+- `bookmarks`
+- `onToggleBookmark`
+
+Notes still use props because they are a separate state domain.
+
+The task explanation was recorded in `EXERCISE_5.md`.
+
+Validation passed:
+
+- `npm run build`
+- `npm run lint`
+
+- [x] Explain a short, honest decision: for _this specific app_, at its _current_ size, is Context actually the right call for this state, or is prop-drilling (or lifting state, without Context) good enough? Be ready to defend whichever answer you land on.
+
+I’ll add an honest app-specific justification to the Demo 8 checklist, explaining why Context is reasonable for bookmarks now while avoiding Context for unrelated state.
+
+Read , lines 2727 to 2750
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\EXERCISE_5.md",
+"view_range": [
+2727,
+2750
+]
+}
+
+"Search" failed
+Tool execution failed: rg: regex parse error:
+(?:Notes continue|Demo 8 Task 1|Context) good enough)
+^
+error: unopened group
+
+Search for `Demo 8 Task 1|Notes continue|Context`
+
+Edit
+
+Demo 8 Task 2 is complete and documented in `EXERCISE_5.md`.
+
+The honest decision is:
+
+- Context is reasonable for bookmark state because Dashboard, Evidence, and Workspace all consume the same bookmarks and callback.
+- Before Context, prop drilling through `RouteContent` was still manageable.
+- Context removes forwarding props through a routing component that does not use the bookmark data itself.
+- Context is not being used for every piece of state:
+  - Notes remain parent-owned and passed through props.
+  - Evidence filters remain local reducer state.
+- A larger global state-management library would be unnecessary for this application’s current size.
+
+So Context is justified for the shared bookmark state, but it is a targeted choice rather than a blanket rule for all state.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What problem does Context actually solve? What does it _not_ solve (people sometimes expect it to behave like global state management. Where does that expectation break down)?
-- [ ] Revisit Demo 6's callback-depth question. Was prop drilling there actually a real problem
-      (annoying, error-prone, worth solving) or a manageable one? What's your threshold for reaching for Context instead of just drilling one more level?
+- [x] What problem does Context actually solve? What does it _not_ solve (people sometimes expect it to behave like global state management. Where does that expectation break down)?
+
+React Context solves the problem of passing the same value through multiple intermediate components that do not use that value themselves.
+
+In this app, bookmark state is needed by:
+
+- Dashboard, for the bookmark count.
+- Evidence, for displaying and toggling bookmark buttons.
+- Workspace, for displaying bookmarked evidence.
+
+Without Context, `bookmarks` and `onToggleBookmark` had to be passed through `RouteContent`, even though `RouteContent` only defined the routes. Context allows those components to access the shared bookmark value directly:
+
+```tsx
+const { bookmarks, onToggleBookmark } = useBookmarks();
+```
+
+## What Context solves
+
+Context provides:
+
+- A shared value for a specific component subtree.
+- Less prop drilling through unrelated components.
+- A typed access point through the `useBookmarks()` hook.
+- A way for multiple descendants to observe the same updated value.
+- Normal React re-rendering when the provider value changes.
+
+In this app, `App` still owns the state and persistence logic. Context only changes how descendants receive it.
+
+## What Context does not solve
+
+Context is not automatically a complete global state-management system. It does not provide:
+
+- A database or permanent storage mechanism.
+- Automatic persistence across page reloads.
+- Server synchronization.
+- Undo/redo, caching, or request management.
+- Complex action organization by itself.
+- Selective updates for consumers; consumers of a changing context value can re-render.
+- A replacement for immutable updates or good state ownership.
+
+For example, our bookmark Context still requires `App` to update state correctly:
+
+```tsx
+setBookmarks(nextBookmarks);
+state.bookmarks = nextBookmarks;
+saveBookmarksToStorage();
+```
+
+Context does not create `nextBookmarks`, persist it, or decide when it should change. It only makes the current value and callback available to descendants.
+
+Context also does not mean every component can mutate the state directly. In this application, children still call the provided `onToggleBookmark` callback. The parent remains responsible for the update.
+
+The expectation breaks down when Context is treated like a magical global variable. It is actually a scoped dependency-injection mechanism for a React subtree. It reduces prop drilling, but it does not replace state design, reducers, persistence, API/data libraries, or careful ownership decisions.
+
+- [x] Revisit Demo 6's callback-depth question. Was prop drilling there actually a real problem (annoying, error-prone, worth solving) or a manageable one? What's your threshold for reaching for Context instead of just drilling one more level?
+      In Demo 6, prop drilling was **manageable**, not a serious problem.
+
+The callback path was short:
+
+```text
+App
+  → RouteContent
+    → EvidenceCatalogueView
+```
+
+There was only one intermediate component, `RouteContent`, and it was easy to understand why the callback was being passed through. The callback was also strongly typed, so the risk of passing the wrong value was low.
+
+I would not introduce Context merely because a prop passes through one intermediate component. For a small tree, explicit props make data dependencies visible and are often simpler.
+
+I would consider Context when:
+
+- The same state is needed by several unrelated branches.
+- A value must pass through multiple intermediate layers.
+- Intermediate components repeatedly forward props they never use.
+- Adding another consumer requires editing many components.
+- The prop types become cluttered with values used only by descendants.
+- The shared state has a clear boundary, such as authentication, theme, or bookmarks.
+
+For this application, three feature views consume bookmark state, while `RouteContent` only connects routes and does not use bookmarks itself. That made Context reasonable in Demo 8, although the original prop-drilled version was still functional and understandable.
+
+The practical threshold is not a fixed number of layers. One extra level is usually fine. Context becomes worthwhile when prop forwarding is repeated, crosses unrelated components, or makes the component interfaces harder to understand than a small, well-scoped context.
+
 - [ ] "Unnecessary global state" is explicitly named as a common problem. Could using Context here be an example of that, even though Context isn't technically the same as a global variable?
 
 ---

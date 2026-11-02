@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { HashRouter } from "react-router-dom";
 import { Header } from "./app/Header.js";
 import { RouteContent } from "./app/RouteContent.js";
+import { BookmarkProvider } from "./contexts/BookmarkContext.js";
 import { state } from "./state.js";
 import { saveBookmarksToStorage, saveNoteForEvidence } from "./storage.js";
 
@@ -46,13 +47,10 @@ export default function App() {
 
   return (
     <HashRouter>
-      <Header />
-      <RouteContent
-        bookmarks={bookmarks}
-        notes={notes}
-        onToggleBookmark={toggleBookmark}
-        onSaveNote={saveNote}
-      />
+      <BookmarkProvider value={{ bookmarks, onToggleBookmark: toggleBookmark }}>
+        <Header />
+        <RouteContent notes={notes} onSaveNote={saveNote} />
+      </BookmarkProvider>
     </HashRouter>
   );
 }

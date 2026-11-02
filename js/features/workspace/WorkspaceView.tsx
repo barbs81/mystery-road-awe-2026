@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Panel } from "../../components/Panel.js";
+import { useBookmarks } from "../../contexts/BookmarkContext.js";
 import type { Evidence, Person } from "../../types.js";
 
 const HYPOTHESIS_STORAGE_KEY = "remotion_hypothesis";
@@ -9,16 +10,11 @@ const HYPOTHESIS_STORAGE_KEY = "remotion_hypothesis";
 export type WorkspaceViewProps = {
   evidence: Evidence[];
   people: Person[];
-  bookmarks: string[];
   notes: Record<string, string>;
 };
 
-export function WorkspaceView({
-  evidence,
-  people,
-  bookmarks,
-  notes,
-}: WorkspaceViewProps) {
+export function WorkspaceView({ evidence, people, notes }: WorkspaceViewProps) {
+  const { bookmarks } = useBookmarks();
   const [hypothesisSaved, setHypothesisSaved] = useState(false);
   const [suspectId, setSuspectId] = useState("");
   const [nature, setNature] = useState("");

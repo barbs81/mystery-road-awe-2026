@@ -1,6 +1,7 @@
 import { useReducer, useState } from "react";
 import type { FormEvent } from "react";
 import { Panel } from "../../components/Panel.js";
+import { useBookmarks } from "../../contexts/BookmarkContext.js";
 import {
   evidenceMentionsPerson,
   formatDate,
@@ -58,9 +59,7 @@ export type EvidenceCatalogueViewProps = {
   evidence: Evidence[];
   people: Person[];
   locations: Location[];
-  bookmarks: string[];
   notes: Record<string, string>;
-  onToggleBookmark: (evidenceId: string) => void;
   onSaveNote: (evidenceId: string, text: string) => void;
 };
 
@@ -68,11 +67,10 @@ export function EvidenceCatalogueView({
   evidence,
   people,
   locations,
-  bookmarks,
   notes,
-  onToggleBookmark,
   onSaveNote,
 }: EvidenceCatalogueViewProps) {
+  const { bookmarks, onToggleBookmark } = useBookmarks();
   const [filters, dispatchFilters] = useReducer(
     evidenceFiltersReducer,
     initialEvidenceFilters,
