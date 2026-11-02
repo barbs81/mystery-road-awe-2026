@@ -3093,7 +3093,43 @@ Validation passed:
 
 No React DevTools were required; both issues were identified through targeted code review and searches for mutation and uncontrolled-input patterns.
 
-- [ ] Of the five named problems (duplicated state, stale state, prop drilling, unnecessary global state, mutation), which one is this app's history (Exercise 1's bugs) most clearly an example of? Explain the connection directly.
+- [x] Of the five named problems (duplicated state, stale state, prop drilling, unnecessary global state, mutation), which one is this app's history (Exercise 1's bugs) most clearly an example of? Explain the connection directly.
+
+The clearest example is **mutation**, especially mutation of shared arrays.
+
+In the original vanilla app, sorting evidence could mutate the master evidence array through a shared reference. For example, sorting a list in place could permanently change the original order:
+
+```tsx
+filteredEvidence.sort(compareEvidence);
+```
+
+If `filteredEvidence` referred to the same array as the master evidence collection, the sort changed the source data itself. Later views no longer had the original evidence order.
+
+The original bookmark logic also mutated shared state directly:
+
+```tsx
+state.bookmarks.push(evidenceId);
+```
+
+That created similar problems because other parts of the application could hold references to the same array and would not necessarily receive a new reference or a predictable update signal.
+
+The React version addresses this by creating new arrays and objects:
+
+```tsx
+const nextBookmarks = bookmarks.includes(evidenceId)
+  ? bookmarks.filter((id) => id !== evidenceId)
+  : [...bookmarks, evidenceId];
+```
+
+And the Evidence list is filtered before sorting:
+
+```tsx
+const filteredEvidence = evidence.filter(matchesFilters).sort(compareEvidence);
+```
+
+`filter()` creates a new array, so `.sort()` does not mutate the master evidence array.
+
+This connects directly to the Exercise 1 bugs: the original app changed shared data in place, while the React version treats state as immutable and derives new values from the source data. That prevents the original-order loss, stale references, and inconsistent view behavior caused by mutation.
 
 ---
 
@@ -3101,12 +3137,379 @@ No React DevTools were required; both issues were identified through targeted co
 
 **Tasks**
 
+- [x] Do a final sweep of the Evidence Catalogue and Workspace views (and re-check Dashboard/People & Locations/Timeline from Exercises 3–4) for any remaining direct DOM manipulation, e.g. `document.querySelector`, manual `classList` changes, `innerHTML`, anything not going through React's render, and remove it.
+
+I’ll audit all active React feature files plus the shell and route entry points for DOM APIs, then remove only active-path manipulation while preserving the legacy-app hiding behavior through React-rendered structure or existing app conventions.
+
+Search for `document\.|window\.|innerHTML|outerHTML|querySelector|getElementById|classLis...`
+
+Search for `innerHTML|querySelector|getElementById|classList|createElement|appendChild`
+
+Find files matching `js/**/*View.tsx`
+
+Search for `react-dashboard-hidden|#app|ReactApp`
+
+Read , lines 1 to 180
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\index.html",
+"view_range": [
+1,
+180
+]
+}
+
+Read , lines 1 to 80
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\react-main.tsx",
+"view_range": [
+1,
+80
+]
+}
+
+Read , lines 125 to 150
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\styles.css",
+"view_range": [
+125,
+150
+]
+}
+
+Search for `<div id="app"|id="react-root"|data-react`
+
+Search for `react-dashboard-hidden|loadingOverlay|loading-overlay|appdatachange`
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\dataLoader.ts",
+"view_range": [
+1,
+100
+]
+}
+
+Search for `dataLoader|loadData|loading`
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\package.json",
+"view_range": [
+1,
+100
+]
+}
+
+Read , lines 1 to 80
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\app.ts",
+"view_range": [
+1,
+80
+]
+}
+
+Search for `script`
+
+The active React feature views are clean; the only direct DOM manipulation in the React shell is the effect that hides the legacy `<main>`. I’ll remove that effect and make the legacy container hidden declaratively in HTML, preserving the current React/legacy compatibility while keeping the React-rendered UI free of manual DOM changes.
+
+"Apply Patch" failed
+Completed with input: {"path":"C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\index.html"}
+Tool execution failed: Error: Failed to find expected lines in C:\Users\barbs\VS Programs\Advance Web Engineering\Exercise 1\mystery-road-awe-2026\EXERCISE_5.md:
+
 - [ ] Do a final sweep of the Evidence Catalogue and Workspace views (and re-check Dashboard/People & Locations/Timeline from Exercises 3–4) for any remaining direct DOM manipulation, e.g. `document.querySelector`, manual `classList` changes, `innerHTML`, anything not going through React's render, and remove it.
-- [ ] Confirm the whole app (all 5 views) now runs entirely on React state and props, with zero manual DOM manipulation anywhere.
+
+Search for `final sweep|remaining direct DOM|Confirm the whole app|Demo 10`
+
+Edit
+
+The shell-level manual `classList` change is removed and the legacy container is hidden declaratively. I’ll verify the build, lint, and active React-path DOM audit now.
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Search for `document\.(querySelector|getElementById)|innerHTML|outerHTML|classList|create...`
+
+Demo 10 Task 1 is complete.
+
+### Audit results
+
+The active React feature files for:
+
+- Evidence
+- Workspace
+- Dashboard
+- People
+- Locations
+- Timeline
+
+contain no remaining:
+
+- `document.querySelector`
+- `document.getElementById`
+- `innerHTML`
+- `outerHTML`
+- manual `classList` changes
+- `createElement`
+- `appendChild`
+
+### Fix made
+
+The React shell previously hid the legacy application with manual DOM manipulation:
+
+```tsx
+const legacyContent = document.getElementById("app");
+legacyContent?.classList.add("react-dashboard-hidden");
+```
+
+That effect was removed from `ReactApp.tsx`.
+
+The legacy container is now hidden declaratively in `index.html`:
+
+```html
+<main id="app" class="app-main" hidden></main>
+```
+
+The audit details were recorded in `EXERCISE_5.md`.
+
+The old vanilla `app.ts` and `views/` files still exist for the legacy compatibility path and contain their original DOM code, but they are not used to render the active React feature routes.
+
+Validation passed:
+
+- `npm run build`
+- `npm run lint`
+- Active React feature DOM-manipulation search returned no matches.
+
+### Demo 10 Task 1 audit and fix
+
+The active React Evidence, Workspace, Dashboard, People & Locations, and Timeline feature files contain no `document.querySelector`, `innerHTML`, manual `classList`, `createElement`, or `appendChild` operations. The React shell previously used an effect to find the legacy `#app` element and add a hiding class; that was removed. The legacy container is now declaratively hidden with the HTML `hidden` attribute in `index.html`, so React does not manually modify its DOM.
+
+The legacy `app.ts` and `views/` files remain in the repository for the exercise's compatibility path and still contain their original vanilla DOM code, but they are not used to render the active React feature routes.
+
+- [x] Confirm the whole app (all 5 views) now runs entirely on React state and props, with zero manual DOM manipulation anywhere.
+
+The requested “zero manual DOM manipulation anywhere” claim is not currently true: the legacy `app.ts`, `dataLoader.ts`, and `views/` scripts are still loaded alongside React and contain DOM APIs, even though the legacy `<main>` is hidden. I’ll verify the script/data-loading dependency before deciding whether this task can be completed without breaking initialization.
+
+Read , lines 1 to 180
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\app.ts",
+"view_range": [
+1,
+180
+]
+}
+
+Read , lines 80 to 180
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\dataLoader.ts",
+"view_range": [
+80,
+180
+]
+}
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx",
+"view_range": [
+1,
+100
+]
+}
+
+Search for `document\.|innerHTML|classList|querySelector|createElement|appendChild`
+
+The audit confirms Task 2 cannot honestly be marked complete yet. The page still loads `js/app.ts`, which registers vanilla listeners and starts `dataLoader.ts`; those modules call `document`, `querySelector`, `classList`, and legacy render functions. Removing that script without replacing its data-loading responsibility would leave the React views empty.
+
+Ask User
+Completed with input: {
+"message": "Demo 10 Task 2 requires the whole app to have zero manual DOM manipulation, but the current page still loads the legacy `app.ts`/`dataLoader.ts` path that loads data and contains vanilla DOM code. Which scope should I implement?",
+"requestedSchema": {
+"properties": {
+"scope": {
+"type": "string",
+"title": "Migration scope",
+"oneOf": [
+{
+"const": "migrate",
+"title": "Migrate fully to React (recommended): replace the legacy data-loading/initialization path, remove its script from index.html, and then audit all active app code."
+},
+{
+"const": "active-react",
+"title": "Keep legacy compatibility: mark only the active React views as complete and document that the legacy script remains outside the React path."
+}
+],
+"default": "migrate"
+}
+}
+}
+}
+
+I’ll proceed with the full React-path migration: move case-data loading into `App`, pass loaded data through `RouteContent`/feature props, remove the legacy `app.ts` script from `index.html`, and then re-audit the active application.
+
+Read , lines 1 to 80
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\dashboard\\DashboardView.tsx",
+"view_range": [
+1,
+80
+]
+}
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\types.ts",
+"view_range": [
+1,
+100
+]
+}
+
+Read , lines 1 to 120
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\app\\Header.tsx",
+"view_range": [
+1,
+120
+]
+}
+
+Read , lines 1 to 60
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\people-locations\\PeopleView.tsx",
+"view_range": [
+1,
+60
+]
+}
+
+Edit , , ,
+
+The legacy initialization script is now removed from the page, and React loads all five data files itself and passes the resulting data through props. I’ll build and lint now; any type errors will identify remaining migration edges.
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Search for `document\.|innerHTML|classList|querySelector|createElement|appendChild|addEve...`
+
+Search for `Confirm the whole app|Demo 10 Task 1 audit`
+
+Edit
+
+Demo 10 Task 2 is complete for the **running application**.
+
+### Changes made
+
+- Removed the legacy `js/app.ts` script from `index.html`.
+- Moved data loading into React in `ReactApp.tsx`.
+- React now loads:
+
+  - Case data
+  - People
+  - Locations
+  - Evidence
+  - Timeline
+
+- Loaded data is stored in React state and passed through `RouteContent.tsx` to all five React views.
+- Dashboard now receives its data through props instead of reading directly from the legacy shared state.
+- The legacy initialization path, including its vanilla event listeners and render functions, no longer runs.
+- The legacy `<main id="app">` remains hidden declaratively with the HTML `hidden` attribute.
+
+The task confirmation was recorded in `EXERCISE_5.md`.
+
+Validation passed:
+
+- `npm run build`
+- `npm run lint`
+
+One important clarification: the old vanilla files remain in the repository as historical exercise material, so a repository-wide text search can still find their original DOM APIs. They are no longer loaded or used by the running application. The only remaining DOM lookup in the active path is `react-main.tsx` locating the React root before calling `createRoot`, which is required to mount React.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Show one state-management decision you made somewhere in this exercise (state ownership, `useState` vs. `useReducer`, prop drilling vs. Context, or something else) that you're not 100% sure was the right call. Explain the trade-off honestly, both directions.
-- [ ] Across Exercises 3–5, name one bug category from the _original_ vanilla app (Exercise 1's defect list) that is now, by construction, no longer possible in your React version — not just fixed, but structurally prevented. Explain why the React architecture rules it out.
+- [x] Show one state-management decision you made somewhere in this exercise (state ownership, `useState` vs. `useReducer`, prop drilling vs. Context, or something else) that you're not 100% sure was the right call. Explain the trade-off honestly, both directions.
+
+One decision I am not completely certain about is using **React Context for bookmark state** instead of keeping the state in `App` and passing it through props.
+
+### Why Context was reasonable
+
+Bookmarks are used by several different views:
+
+- Evidence needs to display and toggle bookmark buttons.
+- Dashboard needs the bookmark count.
+- Workspace needs the bookmarked evidence list.
+
+Context removes the need to pass `bookmarks` and `onToggleBookmark` through `RouteContent.tsx`, even though the route component does not use that state itself. The focused `BookmarkContext.tsx` also keeps the shared API typed and small.
+
+### Why Context might be unnecessary
+
+The application is still relatively small. Before Context, the callback only passed through one intermediate component:
+
+```text
+App → RouteContent → EvidenceCatalogueView
+```
+
+That was understandable and not yet difficult to maintain. Context can also hide a component’s dependencies because a component may use `useBookmarks()` without receiving `bookmarks` explicitly in its props. Any update to the context value can also cause all of its consumers to re-render.
+
+### Final assessment
+
+For the current app, either approach would work. If there were only one or two consumers, I would prefer lifted state and explicit props. Because Dashboard, Evidence, and Workspace all consume the same bookmark state, the small, focused Context is defensible. I would not use Context for every piece of state; the Evidence filters and Workspace form fields remain local because their ownership is narrower.
+
+- [x] Across Exercises 3–5, name one bug category from the _original_ vanilla app (Exercise 1's defect list) that is now, by construction, no longer possible in your React version — not just fixed, but structurally prevented. Explain why the React architecture rules it out.
+
+One bug category that is now structurally prevented is **stale derived state**, especially the Dashboard bookmark count and Workspace bookmarked-items list.
+
+In the original vanilla app, the Dashboard count could become stale because it was rendered only when a view was first visited. A later bookmark change elsewhere did not necessarily cause the Dashboard to update.
+
+The React version prevents that by keeping one source of truth:
+
+```text
+App bookmark state
+  → BookmarkContext
+    → Dashboard
+    → Evidence
+    → Workspace
+```
+
+Dashboard derives its count during render:
+
+```tsx
+bookmarkCount={bookmarks.length}
+```
+
+Workspace derives its list during render:
+
+```tsx
+const bookmarkedEvidence = evidence.filter((item) =>
+  bookmarks.includes(item.id),
+);
+```
+
+Evidence updates the shared state through the context callback:
+
+```tsx
+onToggleBookmark(item.id);
+```
+
+The callback creates a new array and updates React state:
+
+```tsx
+const nextBookmarks = bookmarks.includes(evidenceId)
+  ? bookmarks.filter((id) => id !== evidenceId)
+  : [...bookmarks, evidenceId];
+
+setBookmarks(nextBookmarks);
+```
+
+That update causes React to re-render every consumer of the bookmark Context. The Dashboard count and Workspace list are recalculated from the current bookmark array rather than copied into separate state.
+
+Therefore, the original stale-count and stale-list bug is not merely fixed with an extra refresh call. The architecture rules it out because:
+
+1. There is one bookmark source of truth.
+2. Derived values are computed during rendering.
+3. Updates use React state with new references.
+4. Context notifies all bookmark consumers when the source changes.
+5. No component stores its own independent bookmark count or bookmarked-items list.
 
 ---

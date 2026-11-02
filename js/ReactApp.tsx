@@ -4,25 +4,98 @@ import { Header } from "./app/Header.js";
 import { RouteContent } from "./app/RouteContent.js";
 import { BookmarkProvider } from "./contexts/BookmarkContext.js";
 import { state } from "./state.js";
-import { saveBookmarksToStorage, saveNoteForEvidence } from "./storage.js";
+import {
+  loadBookmarksFromStorage,
+  loadNotesFromStorage,
+  saveBookmarksToStorage,
+  saveNoteForEvidence,
+} from "./storage.js";
+import type {
+  CaseData,
+  Evidence,
+  Location,
+  Person,
+  TimelineEvent,
+} from "./types.js";
+
+type AppData = {
+  caseData: CaseData;
+  evidence: Evidence[];
+  people: Person[];
+  locations: Location[];
+  timeline: TimelineEvent[];
+};
 
 export default function App() {
-  const [, setDataVersion] = useState(0);
   const [bookmarks, setBookmarks] = useState<string[]>(() => [
     ...state.bookmarks,
   ]);
   const [notes, setNotes] = useState<Record<string, string>>(() => ({
     ...state.notesStore,
   }));
+  const [data, setData] = useState<AppData>({
+    caseData: state.caseData,
+    evidence: state.allEvidence,
+    people: state.allPeople,
+    locations: state.allLocations,
+    timeline: state.allTimeline,
+  });
+  const [dataError, setDataError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleDataChange = () => {
-      setBookmarks([...state.bookmarks]);
-      setNotes({ ...state.notesStore });
-      setDataVersion((version) => version + 1);
-    };
-    window.addEventListener("appdatachange", handleDataChange);
-    return () => window.removeEventListener("appdatachange", handleDataChange);
+    loadBookmarksFromStorage();
+    loadNotesFromStorage();
+    setBookmarks([...state.bookmarks]);
+    setNotes({ ...state.notesStore });
+
+    async function loadData() {
+      try {
+        const [
+          caseResponse,
+          peopleResponse,
+          locationsResponse,
+          evidenceResponse,
+          timelineResponse,
+        ] = await Promise.all([
+          fetch("data/case.json"),
+          fetch("data/people.json"),
+          fetch("data/locations.json"),
+          fetch("data/evidence.json"),
+          fetch("data/timeline.json"),
+        ]);
+
+        if (
+          !caseResponse.ok ||
+          !peopleResponse.ok ||
+          !locationsResponse.ok ||
+          !evidenceResponse.ok ||
+          !timelineResponse.ok
+        ) {
+          throw new Error("One or more case data files could not be loaded.");
+        }
+
+        const nextData: AppData = {
+          caseData: (await caseResponse.json()) as CaseData,
+          people: (await peopleResponse.json()) as Person[],
+          locations: (await locationsResponse.json()) as Location[],
+          evidence: (await evidenceResponse.json()) as Evidence[],
+          timeline: (await timelineResponse.json()) as TimelineEvent[],
+        };
+
+        state.caseData = nextData.caseData;
+        state.allPeople = nextData.people;
+        state.allLocations = nextData.locations;
+        state.allEvidence = nextData.evidence;
+        state.allTimeline = nextData.timeline;
+        setData(nextData);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not load case data.";
+        setDataError(message);
+      }
+    }
+
+    void loadData();
   }, []);
 
   function toggleBookmark(evidenceId: string) {
@@ -40,16 +113,17 @@ export default function App() {
     setNotes({ ...state.notesStore });
   }
 
-  useEffect(() => {
-    const legacyContent = document.getElementById("app");
-    legacyContent?.classList.add("react-dashboard-hidden");
-  }, []);
-
   return (
     <HashRouter>
       <BookmarkProvider value={{ bookmarks, onToggleBookmark: toggleBookmark }}>
         <Header />
-        <RouteContent notes={notes} onSaveNote={saveNote} />
+        {dataError ? (
+          <main className="app-main">
+            <p role="alert">{dataError}</p>
+          </main>
+        ) : (
+          <RouteContent data={data} notes={notes} onSaveNote={saveNote} />
+        )}
       </BookmarkProvider>
     </HashRouter>
   );
