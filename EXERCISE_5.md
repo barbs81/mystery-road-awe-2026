@@ -38,14 +38,419 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 **Tasks**
 
-- [ ] Build the Evidence Catalogue and Workspace views' static structure in React (cards, the filter toolbar, the notes list, the hypothesis form) if you haven't already, then migrate at least 3 real event handlers from the vanilla version (e.g. bookmark click, search input, save-note click) into React event handlers (`onClick`, `onChange`, `onSubmit`, etc.).
-- [ ] For each one, confirm the vanilla version's inline `onclick` attribute or manually-attached `addEventListener` is gone. React should own the event, not the DOM.
+- [x] Build the Evidence Catalogue and Workspace views' static structure in React (cards, the filter toolbar, the notes list, the hypothesis form) if you haven't already, then migrate at least 3 real event handlers from the vanilla version (e.g. bookmark click, search input, save-note click) into React event handlers (`onClick`, `onChange`, `onSubmit`, etc.).
+
+I’ll first map the existing vanilla Evidence and Workspace behavior plus the current React shell, then I’ll migrate the static structures and at least three handlers while preserving the existing shared data flow. Afterward I’ll run validation and give you a detailed notes-ready change list.
+
+Find files matching `js/**/*.{tsx,ts}`
+
+Search for `renderEvidence|renderWorkspace|bookmark|save-note|notes|addEventListener|inpu...`
+
+Read
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\ReactApp.tsx"
+}
+
+Read
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\state.ts"
+}
+
+Read
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\react-main.tsx"
+}
+
+Read
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\package.json"
+}
+
+Read , lines 1 to 240
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\views\\evidence.ts",
+"view_range": [
+1,
+240
+]
+}
+
+Read , lines 240 to 540
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\views\\evidence.ts",
+"view_range": [
+240,
+540
+]
+}
+
+Read , lines 1 to 180
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\views\\workspace.ts",
+"view_range": [
+1,
+180
+]
+}
+
+Read
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\index.html"
+}
+
+Search for `filter-|evidence-search|notesList|bookmarksList|hypothesis|workspace|app-main`
+
+Read , lines 100 to 340
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\index.html",
+"view_range": [
+100,
+340
+]
+}
+
+Read , lines 1 to 145
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\app.ts",
+"view_range": [
+1,
+145
+]
+}
+
+Read
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\storage.ts"
+}
+
+Read
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\utils.ts"
+}
+
+Read
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\vite.config.ts"
+}
+
+The existing React shell already has routes for Evidence and Workspace, but they are stubs; the legacy versions are still hidden underneath. I’m replacing those two stubs with feature components, using React state for the new Exercise 5 interactions while keeping bookmarks and notes persisted through the existing storage helpers.
+
+Edit , ,
+
+Edit , ,
+
+Read , lines 1 to 120
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\evidence\\EvidenceCatalogueView.tsx",
+"view_range": [
+1,
+120
+]
+}
+
+Read
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\app\\RouteContent.tsx"
+}
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+The new Evidence and Workspace components compile and lint cleanly. I’m now testing the actual user flows: Evidence search/filter rendering, bookmark toggling, note saving, and Workspace hypothesis submission.
+
+Ran terminal command: npx vite --host 127.0.0.1 --port 5176
+
+Read Terminal
+Completed with input: {
+"shellId": "53",
+"delay": 5
+}
+
+Opened `Browser`
+
+Read `Browser`
+
+Search for `Evidence items|button|E18|bookmark|Evidence Catalogue`
+
+Clicked bookmark button for Production calibration-service checksum in `Browser`
+
+Search for `Toggle bookmark for Production|★|Evidence items`
+
+Typed text in Evidence search in `Browser`
+
+Clicked Production calibration-service evidence card in `Browser`
+
+Typed text in Investigator note in `Browser`
+
+Clicked Save note in `Browser`
+
+Navigated to http://127.0.0.1:5176/mystery-road-awe-2026/#/workspace in `Browser`
+
+The browser checks confirmed the migrated flows: Evidence renders real cards, search narrows the list, bookmark toggling updates the star and Workspace, opening a card exposes the note form, and saving the note appears in Workspace. I’m making a small documentation cleanup and removing the now-unused route stub before the final validation.
+
+Edit ,
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Ran terminal command: git diff --check; git status --short; git diff --stat
+
+Ran terminal command: git diff -- EXERCISE_5.md | Select-Object -First 80
+
+Edit
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Ran terminal command: git diff --check -- js/ARCHITECTURE.md js/app/RouteContent.tsx; git status --short
+
+Stop Terminal Session
+Completed with input: {
+"shellId": "53"
+}
+
+Exercise 5 Demo 1 is implemented and verified.
+
+## Files added
+
+- `EvidenceCatalogueView.tsx`
+  - React Evidence Catalogue structure.
+  - Evidence cards.
+  - Search input.
+  - Type, person, location, status, and relevance filters.
+  - Sorting controls.
+  - Clear filters button.
+  - Evidence detail panel.
+  - Bookmark button.
+  - Investigator note form.
+
+- `WorkspaceView.tsx`
+  - React Workspace structure.
+  - Bookmarked Evidence list.
+  - Personal Notes list.
+  - Hypothesis Draft form.
+  - Suspect selector.
+  - Incident nature selector.
+  - Supporting evidence multi-select.
+  - Confidence range input.
+  - Explanation and alternative explanation fields.
+  - Save hypothesis button.
+
+- `index.ts`
+  - Exports the Evidence Catalogue component.
+
+## Files updated
+
+- `RouteContent.tsx`
+  - Replaced the Evidence stub with `EvidenceCatalogueView`.
+  - Replaced the Workspace stub with `WorkspaceView`.
+  - Passed the existing evidence, people, and location data into those components.
+  - Removed the unused `StubView`.
+
+- `ARCHITECTURE.md`
+  - Added the Evidence and Workspace feature folders to the documented project structure.
+
+## React event handlers migrated
+
+More than the required three handlers are now implemented in React:
+
+1. **Evidence search**
+
+   ```tsx
+   onChange={(event) => setSearch(event.target.value)}
+   ```
+
+2. **Evidence filters**
+   - Type filter
+   - Person filter
+   - Location filter
+   - Status filter
+   - Relevance filter
+
+3. **Evidence sorting**
+
+   ```tsx
+   onChange={(event) => setSort(...)}
+   ```
+
+4. **Clear filters**
+
+   ```tsx
+   onClick={() => {
+     setSearch("");
+     setTypeFilter("");
+     ...
+   }}
+   ```
+
+5. **Bookmark click**
+
+   ```tsx
+   onClick={() => toggleBookmark(item)}
+   ```
+
+   This updates the shared bookmark list and persists it through the existing storage helper.
+
+6. **Opening evidence details**
+
+   ```tsx
+   onClick={() => setSelectedEvidenceId(item.id)}
+   ```
+
+7. **Save-note action**
+
+   ```tsx
+   <form onSubmit={saveNote}>
+   ```
+
+   The note is saved through the existing `saveNoteForEvidence` helper.
+
+8. **Close evidence details**
+
+   ```tsx
+   onClick={() => setSelectedEvidenceId(null)}
+   ```
+
+9. **Save hypothesis draft**
+   ```tsx
+   <form onSubmit={saveHypothesis}>
+   ```
+   The draft is saved to `localStorage`.
+
+## Existing storage behavior preserved
+
+- Bookmarks continue to use the existing `state.bookmarks` source of truth.
+- Bookmarks continue to persist through `saveBookmarksToStorage()`.
+- Evidence notes continue to use `state.notesStore`.
+- Notes continue to persist through `saveNoteForEvidence()`.
+- Hypothesis drafts continue to use `localStorage`, using the existing storage key.
+
+## Browser verification
+
+Verified that:
+
+- `#/evidence` renders the Evidence Catalogue.
+- Evidence cards render after data loading.
+- Searching filters the evidence list.
+- Bookmarking changes the star from `☆` to `★`.
+- Bookmarked evidence appears in `#/workspace`.
+- Opening an evidence card displays the detail panel.
+- Saving an investigator note makes it appear in Workspace.
+- `#/workspace` renders the hypothesis form.
+
+## Validation
+
+- `npm run build` passed.
+- `npm run lint` passed.
+
+- [x] For each one, confirm the vanilla version's inline `onclick` attribute or manually-attached `addEventListener` is gone. React should own the event, not the DOM.
+
+I’ll verify the migrated Evidence and Workspace React components contain no inline `onclick` attributes or manual `addEventListener` calls, confirm the handlers are attached through JSX, and then mark this checklist item complete without changing the legacy code that still supports the unmigrated views.
+
+Search for `onclick|addEventListener`
+
+Search for `onClick|onChange|onSubmit`
+
+Search for `For each one, confirm`
+
+Confirmed. The migrated React components use React-owned event handlers:
+
+- `EvidenceCatalogueView.tsx`
+  - `onChange` for search and filters.
+  - `onClick` for bookmarks, opening details, clearing filters, and closing details.
+  - `onSubmit` for saving notes.
+
+- `WorkspaceView.tsx`
+  - `onSubmit` for saving the hypothesis draft.
+
+A targeted search found:
+
+- No inline `onclick` attributes.
+- No `addEventListener` calls.
+- React owns the migrated events through JSX props such as `onClick`, `onChange`, and `onSubmit`.
+
+The corresponding item is already marked complete in `EXERCISE_5.md`.
+
+The old vanilla Evidence and Workspace files still contain their original DOM listeners because they are legacy code, but the active React routes now use the React implementations instead.
 
 **Questions** (depend on the tasks above)
 
-- [ ] How do you attach a click handler to a button in React versus how the vanilla version did it (inline `onclick="..."` in the HTML string, or `addEventListener` in JS)? What actually receives the event object in each approach, and is it the same kind of object?
-- [ ] The vanilla version's evidence-list click handling used event delegation (one listener on the container, checking `event.target`) partly to work around listeners being re-registered on
-      every render. Do you still need that pattern in React? Why or why not?
+- [x] How do you attach a click handler to a button in React versus how the vanilla version did it (inline `onclick="..."` in the HTML string, or `addEventListener` in JS)? What actually receives the event object in each approach, and is it the same kind of object?
+
+In React, the handler is attached directly in JSX using `onClick`:
+
+```tsx
+<button type="button" onClick={() => toggleBookmark(item)}>
+  Bookmark
+</button>
+```
+
+Or, when the event object is needed:
+
+```tsx
+<button
+  type="button"
+  onClick={(event) => {
+    event.stopPropagation();
+    toggleBookmark(item);
+  }}
+>
+  Bookmark
+</button>
+```
+
+React calls the handler and passes it a React event object. In TypeScript, a button click can be typed as:
+
+```tsx
+(event: React.MouseEvent<HTMLButtonElement>)
+```
+
+In the vanilla version, the event was attached either inline:
+
+```html
+<button onclick="handleBookmarkClick()">Bookmark</button>
+```
+
+or with JavaScript:
+
+```ts
+button.addEventListener("click", handleBookmarkClick);
+```
+
+The vanilla handler receives the browser’s native `MouseEvent`:
+
+```ts
+function handleBookmarkClick(event: MouseEvent) {
+  event.stopPropagation();
+}
+```
+
+### Are they the same kind of object?
+
+They represent the same user action and provide similar properties and methods, such as:
+
+- `target`
+- `currentTarget`
+- `stopPropagation()`
+- `preventDefault()`
+
+However, they are not exactly the same object:
+
+- **Vanilla JavaScript:** receives the browser’s native `MouseEvent`.
+- **React:** receives React’s event wrapper, commonly called a `SyntheticEvent`, which provides a consistent React interface and exposes the original browser event through `event.nativeEvent`.
+
+In our migrated code, React owns the event:
+
+```tsx
+onClick={() => toggleBookmark(item)}
+```
+
+The browser is still the source of the click, but React attaches and manages the handler as part of the component tree.
+
+- [ ] The vanilla version's evidence-list click handling used event delegation (one listener on the container, checking `event.target`) partly to work around listeners being re-registered on every render. Do you still need that pattern in React? Why or why not?
 
 ---
 

@@ -10,6 +10,9 @@ js/
 │ ├── dashboard/
 │ │ ├── DashboardContainer.tsx
 │ │ └── DashboardView.tsx
+│ ├── evidence/
+│ │ ├── EvidenceCatalogueView.tsx
+│ │ └── index.ts
 │ ├── people-locations/
 │ │ ├── LocationCard.tsx
 │ │ ├── LocationsView.tsx
@@ -19,6 +22,8 @@ js/
 │ └── timeline/
 │ ├── TimelineEventCard.tsx
 │ └── TimelineView.tsx
+│ └── workspace/
+│ └── WorkspaceView.tsx
 ├── ReactApp.tsx
 ├── react-main.tsx
 ├── state.ts
