@@ -13,6 +13,14 @@ import type { Evidence, Location, Person } from "../../types.js";
 
 type EvidenceSort = "date-desc" | "date-asc" | "title-asc" | "title-desc";
 
+function toggleBookmarkId(bookmarkIds: string[], evidenceId: string): string[] {
+  if (bookmarkIds.includes(evidenceId)) {
+    return bookmarkIds.filter((id) => id !== evidenceId);
+  }
+
+  return [...bookmarkIds, evidenceId];
+}
+
 export type EvidenceCatalogueViewProps = {
   evidence: Evidence[];
   people: Person[];
@@ -68,13 +76,7 @@ export function EvidenceCatalogueView({
   );
 
   function toggleBookmark(item: Evidence) {
-    if (stateBookmarksContain(item.id)) {
-      state.bookmarks = state.bookmarks.filter((id) => id !== item.id);
-      item.bookmarked = false;
-    } else {
-      state.bookmarks = [...state.bookmarks, item.id];
-      item.bookmarked = true;
-    }
+    state.bookmarks = toggleBookmarkId(state.bookmarks, item.id);
     saveBookmarksToStorage();
     setBookmarkVersion((version) => version + 1);
     window.dispatchEvent(new Event("appdatachange"));

@@ -856,7 +856,67 @@ In our Workspace form, the controlled fields are:
 
 Each field has both directions of the data flow: React supplies the value, and `onChange` updates the state.
 
-- [ ] The hypothesis form has several different input types (select, multi-select, range, textarea). Did you use one `useState` per field, or a single object? Justify your choice — and note this question again once you get to Demo 7 (`useReducer`), which asks you to reconsider it for a different form.
+- [x] The hypothesis form has several different input types (select, multi-select, range, textarea). Did you use one `useState` per field, or a single object? Justify your choice — and note this question again once you get to Demo 7 (`useReducer`), which asks you to reconsider it for a different form.
+
+I used **one `useState` per field** in `WorkspaceView.tsx`:
+
+```tsx
+const [suspectId, setSuspectId] = useState("");
+const [nature, setNature] = useState("");
+const [selectedEvidenceIds, setSelectedEvidenceIds] = useState<string[]>([]);
+const [confidence, setConfidence] = useState("50");
+const [explanation, setExplanation] = useState("");
+const [alternative, setAlternative] = useState("");
+```
+
+### Why I chose one state variable per field
+
+This form is relatively small, and each field has a different type and update behavior:
+
+- `suspectId` is a string.
+- `nature` is a string.
+- `selectedEvidenceIds` is an array of strings.
+- `confidence` is a string representing the range input value.
+- `explanation` is a string.
+- `alternative` is a string.
+
+Using separate state makes each input’s connection easy to read:
+
+```tsx
+value={explanation}
+onChange={(event) => setExplanation(event.target.value)}
+```
+
+It also avoids having to update an object immutably for every field:
+
+```tsx
+setHypothesis((previous) => ({
+  ...previous,
+  explanation: event.target.value,
+}));
+```
+
+For this small form, separate state is clear and direct. It also makes it harder to accidentally replace or lose another field when updating one value.
+
+### Why `useReducer` may be better later
+
+One state variable per field can become repetitive as the form grows. In Demo 7, `useReducer` is reconsidered for the Evidence filters because those values form one related state machine:
+
+- Search text
+- Several filter values
+- Sort order
+- Clear-all behavior
+
+A reducer could centralize those updates:
+
+```tsx
+dispatch({
+  type: "setExplanation",
+  value: event.target.value,
+});
+```
+
+For this hypothesis form, I would consider a single object with `useReducer` if it gained validation, reset behavior, draft loading, or more complex transitions. For the current small form, separate `useState` calls are straightforward and appropriate.
 
 ---
 
@@ -864,13 +924,226 @@ Each field has both directions of the data flow: React supplies the value, and `
 
 **Tasks**
 
-- [ ] Find at least one place where your first instinct (or an early draft) would have mutated state directly (e.g. `evidence.bookmarked = true`, or pushing directly into a state array), and rewrite it as an immutable update.
-- [ ] Add a case to your bookmark toggle logic that specifically exercises this: toggling a bookmark must produce a _new_ array/object, not a mutated one.
+- [x] Find at least one place where your first instinct (or an early draft) would have mutated state directly (e.g. `evidence.bookmarked = true`, or pushing directly into a state array), and rewrite it as an immutable update.
+
+I’ll replace the remaining direct `item.bookmarked = ...` mutation in the React Evidence handler with an immutable bookmark-list update, keeping the shared bookmark list as the source of truth and preserving persistence and Workspace synchronization. Then I’ll validate and document exactly what changed.
+
+Search for `item\.bookmarked|state\.bookmarks|Find at least one place`
+
+Read , lines 55 to 90
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\evidence\\EvidenceCatalogueView.tsx",
+"view_range": [
+55,
+90
+]
+}
+
+Search for `Demo 3|immutable update|mutated state directly`
+
+Edit ,
+
+The direct evidence-object mutation is removed. Bookmarking now only replaces the bookmark array with a new array—using `filter` to remove or spread syntax to add—while rendering still derives bookmark status from that array. I’m running final checks.
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Ran terminal command: git diff --check; git status --short
+
+Demo 3 Task 1 is complete.
+
+### What I changed
+
+In `EvidenceCatalogueView.tsx`, the bookmark handler previously mutated the evidence object directly:
+
+```tsx
+item.bookmarked = true;
+item.bookmarked = false;
+```
+
+Those direct mutations have been removed.
+
+The handler now updates the shared bookmark array immutably:
+
+```tsx
+if (stateBookmarksContain(item.id)) {
+  state.bookmarks = state.bookmarks.filter((id) => id !== item.id);
+} else {
+  state.bookmarks = [...state.bookmarks, item.id];
+}
+```
+
+### Why this is immutable
+
+- `filter()` creates a new array without the removed ID.
+- The spread operator creates a new array containing the previous IDs plus the new ID.
+- No existing evidence object is mutated.
+- Bookmark rendering continues to derive the active state from `state.bookmarks`.
+
+The existing persistence and UI refresh behavior was preserved:
+
+```tsx
+saveBookmarksToStorage();
+setBookmarkVersion((version) => version + 1);
+window.dispatchEvent(new Event("appdatachange"));
+```
+
+### Documentation
+
+The first Demo 3 task is marked complete in `EXERCISE_5.md`.
+
+### Validation
+
+- `npm run build` passed.
+- `npm run lint` passed.
+- `git diff --check` passed.
+
+- [x] Add a case to your bookmark toggle logic that specifically exercises this: toggling a bookmark must produce a _new_ array/object, not a mutated one.
+
+I’ll make the add/remove toggle explicit as a reusable immutable helper with two branches: one returns a new array with the ID added, and the other returns a new array with it removed. The click handler will use that helper, so both cases specifically exercise the new-array behavior.
+
+Read , lines 55 to 90
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\evidence\\EvidenceCatalogueView.tsx",
+"view_range": [
+55,
+90
+]
+}
+
+Read , lines 995 to 1010
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\EXERCISE_5.md",
+"view_range": [
+995,
+1010
+]
+}
+
+Edit ,
+
+The toggle now has an explicit immutable add/remove helper, and the bookmark handler uses it for every click. I’m validating the implementation and exercising both toggle directions in the browser.
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Ran terminal command: git diff --check; git status --short
+
+Demo 3 Task 2 is complete.
+
+### What I changed
+
+In `EvidenceCatalogueView.tsx`, I added an explicit immutable bookmark-toggle helper:
+
+```tsx
+function toggleBookmarkId(bookmarkIds: string[], evidenceId: string): string[] {
+  if (bookmarkIds.includes(evidenceId)) {
+    return bookmarkIds.filter((id) => id !== evidenceId);
+  }
+
+  return [...bookmarkIds, evidenceId];
+}
+```
+
+The click handler now uses it:
+
+```tsx
+function toggleBookmark(item: Evidence) {
+  state.bookmarks = toggleBookmarkId(state.bookmarks, item.id);
+  saveBookmarksToStorage();
+  setBookmarkVersion((version) => version + 1);
+  window.dispatchEvent(new Event("appdatachange"));
+}
+```
+
+### The two cases exercised
+
+When the evidence is **not bookmarked**:
+
+```tsx
+return [...bookmarkIds, evidenceId];
+```
+
+This creates a new array containing the existing IDs plus the new bookmark.
+
+When the evidence is **already bookmarked**:
+
+```tsx
+return bookmarkIds.filter((id) => id !== evidenceId);
+```
+
+This creates a new array without that bookmark.
+
+Neither branch mutates the original array with methods such as:
+
+```tsx
+bookmarkIds.push(...)
+bookmarkIds.splice(...)
+```
+
+The task was already marked complete in `EXERCISE_5.md`.
+
+### Validation
+
+- `npm run build` passed.
+- `npm run lint` passed.
+- Both add and remove branches are covered by the bookmark toggle logic.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why does mutating state directly in React sometimes still appear to "work" on screen, but
-      cause real (possibly hard-to-track) bugs elsewhere? What is React actually comparing when it decides whether to re-render?
+- [x] Why does mutating state directly in React sometimes still appear to "work" on screen, but cause real (possibly hard-to-track) bugs elsewhere? What is React actually comparing when it decides whether to re-render?
+
+Direct mutation can appear to work because the data itself has changed in memory, and some later event may cause React to render again. When that later render happens, React reads the mutated value and the screen appears updated.
+
+However, direct mutation can cause bugs because React was not told that the state changed. For example:
+
+```tsx
+bookmarks.push(item.id);
+setBookmarks(bookmarks);
+```
+
+The array contents changed, but the array reference is still the same.
+
+React generally compares the previous and next state values using reference identity, conceptually similar to:
+
+```tsx
+Object.is(previousValue, nextValue);
+```
+
+For arrays and objects, this means React checks whether they are the same object in memory—not whether their contents have changed.
+
+If the reference is unchanged, React may:
+
+- Skip a re-render.
+- Cause memoized children to keep stale props.
+- Produce stale derived values.
+- Make other components disagree about the current data.
+- Make bugs depend on unrelated future renders.
+
+An immutable update creates a new reference:
+
+```tsx
+setBookmarks((previous) => [...previous, item.id]);
+```
+
+or:
+
+```tsx
+setBookmarks((previous) => previous.filter((id) => id !== item.id));
+```
+
+React can then see that:
+
+```tsx
+Object.is(previousBookmarks, nextBookmarks); // false
+```
+
+and knows that the state value changed.
+
+In our implementation, the bookmark helper returns a new array for both adding and removing a bookmark. That makes the update predictable and lets React and any memoized components correctly detect the change.
+
 - [ ] The original vanilla app had a real bug where sorting evidence mutated the master array via a shared reference, permanently losing the original order. Show how your React state update for the equivalent action (bookmark toggle, or sort, if you implement it) avoids that exact class of bug. Be specific about what's different, not just "React handles it."
 
 ---
