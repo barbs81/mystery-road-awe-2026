@@ -14,6 +14,12 @@ export type WorkspaceViewProps = {
 
 export function WorkspaceView({ evidence, people }: WorkspaceViewProps) {
   const [hypothesisSaved, setHypothesisSaved] = useState(false);
+  const [suspectId, setSuspectId] = useState("");
+  const [nature, setNature] = useState("");
+  const [selectedEvidenceIds, setSelectedEvidenceIds] = useState<string[]>([]);
+  const [confidence, setConfidence] = useState("50");
+  const [explanation, setExplanation] = useState("");
+  const [alternative, setAlternative] = useState("");
   const bookmarkedEvidence = evidence.filter((item) =>
     state.bookmarks.includes(item.id),
   );
@@ -21,14 +27,13 @@ export function WorkspaceView({ evidence, people }: WorkspaceViewProps) {
 
   function saveHypothesis(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
     const draft = {
-      suspectId: String(formData.get("suspect") ?? ""),
-      nature: String(formData.get("nature") ?? ""),
-      evidenceIds: formData.getAll("evidence"),
-      confidence: String(formData.get("confidence") ?? "50"),
-      explanation: String(formData.get("explanation") ?? ""),
-      alternative: String(formData.get("alternative") ?? ""),
+      suspectId,
+      nature,
+      evidenceIds: selectedEvidenceIds,
+      confidence,
+      explanation,
+      alternative,
       savedAt: new Date().toISOString(),
     };
     localStorage.setItem(HYPOTHESIS_STORAGE_KEY, JSON.stringify(draft));
@@ -78,7 +83,12 @@ export function WorkspaceView({ evidence, people }: WorkspaceViewProps) {
               <label htmlFor="react-hyp-suspect">
                 Suspected responsible person
               </label>
-              <select id="react-hyp-suspect" name="suspect">
+              <select
+                id="react-hyp-suspect"
+                name="suspect"
+                value={suspectId}
+                onChange={(event) => setSuspectId(event.target.value)}
+              >
                 <option value="">Select a person...</option>
                 {people.map((person) => (
                   <option value={person.id} key={person.id}>
@@ -91,7 +101,12 @@ export function WorkspaceView({ evidence, people }: WorkspaceViewProps) {
               <label htmlFor="react-hyp-nature">
                 Accidental or deliberate incident
               </label>
-              <select id="react-hyp-nature" name="nature">
+              <select
+                id="react-hyp-nature"
+                name="nature"
+                value={nature}
+                onChange={(event) => setNature(event.target.value)}
+              >
                 <option value="">Select...</option>
                 <option value="accidental">Accidental</option>
                 <option value="deliberate">Deliberate</option>
@@ -102,7 +117,21 @@ export function WorkspaceView({ evidence, people }: WorkspaceViewProps) {
               <label htmlFor="react-hyp-evidence">
                 Selected supporting evidence
               </label>
-              <select id="react-hyp-evidence" name="evidence" multiple size={6}>
+              <select
+                id="react-hyp-evidence"
+                name="evidence"
+                multiple
+                size={6}
+                value={selectedEvidenceIds}
+                onChange={(event) =>
+                  setSelectedEvidenceIds(
+                    Array.from(
+                      event.target.selectedOptions,
+                      (option) => option.value,
+                    ),
+                  )
+                }
+              >
                 {evidence.map((item) => (
                   <option value={item.id} key={item.id}>
                     {item.id} - {item.title}
@@ -118,8 +147,10 @@ export function WorkspaceView({ evidence, people }: WorkspaceViewProps) {
                 type="range"
                 min="0"
                 max="100"
-                defaultValue="50"
+                value={confidence}
+                onChange={(event) => setConfidence(event.target.value)}
               />
+              <output htmlFor="react-hyp-confidence">{confidence}</output>
             </div>
             <div className="form-row">
               <label htmlFor="react-hyp-explanation">Written explanation</label>
@@ -128,6 +159,8 @@ export function WorkspaceView({ evidence, people }: WorkspaceViewProps) {
                 name="explanation"
                 rows={4}
                 placeholder="Explain your reasoning..."
+                value={explanation}
+                onChange={(event) => setExplanation(event.target.value)}
               />
             </div>
             <div className="form-row">
@@ -139,6 +172,8 @@ export function WorkspaceView({ evidence, people }: WorkspaceViewProps) {
                 name="alternative"
                 rows={3}
                 placeholder="What else could explain the evidence?"
+                value={alternative}
+                onChange={(event) => setAlternative(event.target.value)}
               />
             </div>
             <button type="submit" className="btn btn-primary">
