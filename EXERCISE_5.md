@@ -2901,7 +2901,43 @@ For this application, three feature views consume bookmark state, while `RouteCo
 
 The practical threshold is not a fixed number of layers. One extra level is usually fine. Context becomes worthwhile when prop forwarding is repeated, crosses unrelated components, or makes the component interfaces harder to understand than a small, well-scoped context.
 
-- [ ] "Unnecessary global state" is explicitly named as a common problem. Could using Context here be an example of that, even though Context isn't technically the same as a global variable?
+- [x] "Unnecessary global state" is explicitly named as a common problem. Could using Context here be an example of that, even though Context isn't technically the same as a global variable?
+
+Yes, it **could** be an example of unnecessary global-like state if Context were used too broadly.
+
+Context is not technically a global variable:
+
+- It is scoped to a provider and its descendant tree.
+- It is accessed through React’s component system.
+- It does not exist independently of the React tree.
+- It does not automatically make data persistent or available everywhere.
+
+However, Context can still create global-state-like problems if every component can access a large shared object. That can make dependencies less visible and make updates harder to trace.
+
+For this app, the bookmark Context is reasonably scoped because:
+
+- Dashboard, Evidence, and Workspace all need the same bookmark data.
+- The state has one clear owner in `App`.
+- The context contains only bookmarks and the toggle callback.
+- The context is not used for unrelated state such as filters, hypothesis fields, or notes.
+
+It would become unnecessary global state if we placed all of the following into one application-wide context:
+
+```text
+bookmarks
+notes
+search filters
+sort order
+selected evidence
+hypothesis form fields
+timeline filters
+```
+
+That would make unrelated components re-render when any part changed and would hide which components actually depend on which data.
+
+So the honest answer is:
+
+> The bookmark Context could have been unnecessary when prop drilling was only one level deep, but it is defensible here because several feature views share the same state. It remains a small, focused context rather than a catch-all global store. Context should be introduced only when it reduces real prop-drilling complexity, not simply because shared state exists.
 
 ---
 
@@ -2909,13 +2945,154 @@ The practical threshold is not a fixed number of layers. One extra level is usua
 
 **Tasks**
 
-- [ ] Review your own Evidence/Workspace/Dashboard code specifically for: duplicated state (the same fact represented in two places), stale state (a value that doesn't update when it should), excessive prop drilling, unnecessary global state, and any remaining direct mutation.
-- [ ] Find and fix at least 2 real instances (they can be ones you introduced yourself while
-      building this exercise, that's normal and expected, not a failure).
+- [x] Review your own Evidence/Workspace/Dashboard code specifically for: duplicated state (the same fact represented in two places), stale state (a value that doesn't update when it should), excessive prop drilling, unnecessary global state, and any remaining direct mutation.
+
+I’ll audit the current Dashboard, Evidence, Workspace, Context, and shared-state paths for each requested problem category, then record the findings and any tightly related fixes before validating.
+
+Search for `useState|useReducer|state\.|Context|notes|bookmarks|onToggle|onSave|innerHTML...`
+
+Search for `useState|useReducer|state\.|Context|notes|bookmarks|onToggle|onSave|innerHTML...`
+
+Search for `useState|useReducer|state\.|Context|notes|bookmarks|onToggle|onSave|innerHTML...`
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\contexts\\BookmarkContext.tsx",
+"view_range": [
+1,
+100
+]
+}
+
+The audit found no duplicated bookmark or derived-list state, no stale Dashboard count, and no excessive bookmark prop drilling after Context. It did find two intentional legacy-compatibility mutation boundaries (`state.bookmarks` synchronization and `state.notesStore` persistence) that should be candidates for Demo 9 Task 2 rather than silently ignored. I’ll document this review without changing behavior yet.
+
+Search for `Demo 9 —|Review your own Evidence|Find and fix at least 2`
+
+Edit
+
+Demo 9 Task 1 is complete and documented in `EXERCISE_5.md`.
+
+The review found:
+
+- **Duplicated state:** No duplicated bookmark or note state in the React feature views.
+- **Stale state:** No stale Dashboard bookmark count or Workspace bookmark list. Both use the current bookmark Context value.
+- **Excessive prop drilling:** Bookmark props and callbacks were removed from `RouteContent` through `BookmarkContext`. Notes still pass through one route layer, which is currently manageable.
+- **Unnecessary global state:** Bookmark Context is focused and scoped to the React app. Filters and hypothesis fields remain local.
+- **Direct mutation:** React updates use new arrays/objects. Two legacy compatibility writes remain:
+  - `App` synchronizes `state.bookmarks`.
+  - `saveNoteForEvidence` updates `state.notesStore` for persistence.
+
+Those remaining legacy writes are explicitly documented as candidates for Demo 9 Task 2. No application code needed to change for this review task.
+
+- [x] Find and fix at least 2 real instances (they can be ones you introduced yourself while building this exercise, that's normal and expected, not a failure).
+
+I’ll fix two concrete issues from the audit: the storage helper’s in-place notes mutation and the Evidence note form’s uncontrolled `defaultValue`, which can become stale if parent-owned notes change while the detail remains open. Then I’ll document both fixes and validate.
+
+Read , lines 15 to 45
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\storage.ts",
+"view_range": [
+15,
+45
+]
+}
+
+Read , lines 115 to 145
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\evidence\\EvidenceCatalogueView.tsx",
+"view_range": [
+115,
+145
+]
+}
+
+Search for `defaultValue|notesStore\[|\.push\(|\.sort\(`
+
+Edit , ,
+
+Two concrete issues are fixed: note persistence no longer mutates the notes object in place, and the open note editor now stays synchronized with parent-owned notes. I’ll run build and lint now.
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Demo 9 Task 2 is complete. I fixed two real issues:
+
+### 1. Direct notes mutation
+
+In `storage.ts`, note saving previously mutated the object directly:
+
+```tsx
+state.notesStore[evidenceId] = text;
+```
+
+It now creates a new object:
+
+```tsx
+state.notesStore = {
+  ...state.notesStore,
+  [evidenceId]: text,
+};
+```
+
+This avoids in-place mutation and gives React a fresh object to publish.
+
+### 2. Stale uncontrolled note field
+
+In `EvidenceCatalogueView.tsx`, the note textarea previously used `defaultValue`. That meant it could continue displaying an old note if the parent-owned `notes` data changed while the detail panel remained open.
+
+It is now controlled:
+
+```tsx
+<textarea
+  value={noteDraft}
+  onChange={(event) => setNoteDraft(event.target.value)}
+/>
+```
+
+The draft is synchronized with the selected evidence and incoming notes through `useEffect`.
+
+The fixes and explanations were recorded in `EXERCISE_5.md`.
+
+Validation passed:
+
+- `npm run build`
+- `npm run lint`
 
 **Questions** (depend on the tasks above)
 
-- [ ] For each of the 2 issues you fixed: which of the five named categories did it fall into, and how did you notice it (a visible bug, a code-review-style re-read, React DevTools, something else)?
+- [x] For each of the 2 issues you fixed: which of the five named categories did it fall into, and how did you notice it (a visible bug, a code-review-style re-read, React DevTools, something else)?
+
+### Issue 1: Direct mutation in note persistence
+
+- **Category:** Remaining direct mutation.
+- **Location:** `saveNoteForEvidence` in `storage.ts`.
+- **Original problem:**
+
+  ```tsx
+  state.notesStore[evidenceId] = text;
+  ```
+
+- **How I noticed it:** A code-review-style re-read and search for direct writes to shared state. The code worked visibly, but it violated the immutable-update pattern used elsewhere in the React code and could make reference-based change detection unreliable.
+- **Fix:** Replaced the direct assignment with a new object created using spread syntax.
+
+### Issue 2: Uncontrolled note textarea
+
+- **Category:** Stale state.
+- **Location:** The note form in `EvidenceCatalogueView.tsx`.
+- **Original problem:**
+
+  ```tsx
+  defaultValue={notes[selectedEvidence.id] ?? ""}
+  ```
+
+  `defaultValue` only initializes the textarea. It does not update the displayed field when the `notes` prop changes later.
+
+- **How I noticed it:** A code-review-style re-read of the controlled-form and parent-callback implementation. The visible UI could appear correct during normal use, but the field could become stale if the parent updated the note while the detail panel stayed mounted.
+- **Fix:** Changed the textarea to a controlled input using `noteDraft`, `value`, and `onChange`, with an effect to synchronize it with the selected evidence and incoming notes.
+
+No React DevTools were required; both issues were identified through targeted code review and searches for mutation and uncontrolled-input patterns.
+
 - [ ] Of the five named problems (duplicated state, stale state, prop drilling, unnecessary global state, mutation), which one is this app's history (Exercise 1's bugs) most clearly an example of? Explain the connection directly.
 
 ---

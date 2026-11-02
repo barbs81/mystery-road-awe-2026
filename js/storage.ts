@@ -19,7 +19,10 @@ export function loadBookmarksFromStorage(): void {
 }
 
 export function saveNoteForEvidence(evidenceId: string, text: string): void {
-  state.notesStore[evidenceId] = text;
+  state.notesStore = {
+    ...state.notesStore,
+    [evidenceId]: text,
+  };
   localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(state.notesStore));
 }
 

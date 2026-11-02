@@ -1,4 +1,4 @@
-import { useReducer, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import type { FormEvent } from "react";
 import { Panel } from "../../components/Panel.js";
 import { useBookmarks } from "../../contexts/BookmarkContext.js";
@@ -78,6 +78,11 @@ export function EvidenceCatalogueView({
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(
     null,
   );
+  const [noteDraft, setNoteDraft] = useState("");
+
+  useEffect(() => {
+    setNoteDraft(selectedEvidenceId ? (notes[selectedEvidenceId] ?? "") : "");
+  }, [notes, selectedEvidenceId]);
 
   const types = [...new Set(evidence.map((item) => item.type.toLowerCase()))];
   const selectedPerson = people.find(
@@ -127,9 +132,7 @@ export function EvidenceCatalogueView({
   function saveNote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedEvidence) return;
-    const formData = new FormData(event.currentTarget);
-    const note = String(formData.get("note") ?? "");
-    onSaveNote(selectedEvidence.id, note);
+    onSaveNote(selectedEvidence.id, noteDraft);
   }
 
   return (
@@ -333,7 +336,8 @@ export function EvidenceCatalogueView({
                 name="note"
                 className="note-textarea"
                 rows={3}
-                defaultValue={notes[selectedEvidence.id] ?? ""}
+                value={noteDraft}
+                onChange={(event) => setNoteDraft(event.target.value)}
                 placeholder="Add a private note about this evidence..."
               />
               <button type="submit" className="btn btn-primary btn-small">
