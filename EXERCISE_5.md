@@ -1144,7 +1144,69 @@ and knows that the state value changed.
 
 In our implementation, the bookmark helper returns a new array for both adding and removing a bookmark. That makes the update predictable and lets React and any memoized components correctly detect the change.
 
-- [ ] The original vanilla app had a real bug where sorting evidence mutated the master array via a shared reference, permanently losing the original order. Show how your React state update for the equivalent action (bookmark toggle, or sort, if you implement it) avoids that exact class of bug. Be specific about what's different, not just "React handles it."
+- [x] The original vanilla app had a real bug where sorting evidence mutated the master array via a shared reference, permanently losing the original order. Show how your React state update for the equivalent action (bookmark toggle, or sort, if you implement it) avoids that exact class of bug. Be specific about what's different, not just "React handles it."
+
+The vanilla bug happened because sorting operated on the same array that stored the master evidence list.
+
+For example:
+
+```ts
+const results = state.allEvidence;
+results.sort(compareEvidence);
+```
+
+`sort()` mutates the array in place. Since `results` and `state.allEvidence` referred to the same array, sorting the filtered results permanently changed the master order.
+
+The React Evidence view avoids this in two ways.
+
+### 1. Filtering starts with a new array
+
+The React code uses:
+
+```tsx
+const filteredEvidence = evidence
+  .filter((item) => {
+    // filtering conditions
+  })
+  .sort(compareEvidence);
+```
+
+`filter()` creates a new array. Therefore, the following `sort()` operates on that new filtered array, not directly on the original `evidence` prop.
+
+The original `evidence` array remains unchanged.
+
+### 2. Bookmark toggling creates a new array
+
+The bookmark helper returns a new array in both cases:
+
+```tsx
+function toggleBookmarkId(bookmarkIds: string[], evidenceId: string): string[] {
+  if (bookmarkIds.includes(evidenceId)) {
+    return bookmarkIds.filter((id) => id !== evidenceId);
+  }
+
+  return [...bookmarkIds, evidenceId];
+}
+```
+
+- `filter()` creates a new array when removing a bookmark.
+- The spread operator creates a new array when adding one.
+- No `push()` or `splice()` changes the existing array.
+
+Then the new array replaces the old bookmark array:
+
+```tsx
+state.bookmarks = toggleBookmarkId(state.bookmarks, item.id);
+```
+
+The important difference is not simply that React handles it. The code avoids mutating shared references:
+
+- The master evidence list is not sorted in place.
+- The bookmark array is replaced with a new array.
+- Derived lists are calculated from copies created by `filter()`.
+- The original source data remains stable for future renders and other components.
+
+Therefore, changing the display order or toggling a bookmark does not permanently corrupt the underlying evidence data.
 
 ---
 
@@ -1152,12 +1214,242 @@ In our implementation, the bookmark helper returns a new array for both adding a
 
 **Tasks**
 
-- [ ] Implement the Evidence Catalogue's filtering/sorting so that the _filtered, sorted list is computed from_ the full evidence list and the current filter/sort state, every render. Never stored as its own separate piece of state that could drift out of sync.
-- [ ] Do the same for the Dashboard's bookmark count and the Workspace's bookmarked-items list: both should be derived from the same single source of truth for bookmarks, not duplicated state.
+- [x] Implement the Evidence Catalogue's filtering/sorting so that the _filtered, sorted list is computed from_ the full evidence list and the current filter/sort state, every render. Never stored as its own separate piece of state that could drift out of sync.
+
+The Evidence Catalogue already derives its filtered and sorted list during rendering, but I’ll verify that no separate filtered-list state exists, confirm all filter/sort state participates in the derivation, and mark the task complete if the implementation matches the requirement.
+
+Search for `filteredEvidence|useState|sort\(|\.filter\(`
+
+Search for `Implement the Evidence Catalogue's filtering/sorting`
+
+Read , lines 20 to 110
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\evidence\\EvidenceCatalogueView.tsx",
+"view_range": [
+20,
+110
+]
+}
+
+Edit
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Ran terminal command: git diff --check; git status --short
+
+Demo 4 Task 1 is complete.
+
+The Evidence Catalogue computes the displayed list directly during every render:
+
+```tsx
+const filteredEvidence = evidence
+  .filter(/* current search and filter state */)
+  .sort(/* current sort state */);
+```
+
+It starts from the complete `evidence` prop and uses the current:
+
+- Search text
+- Type filter
+- Person filter
+- Location filter
+- Status filter
+- Relevance filter
+- Sort selection
+
+The result is rendered directly with:
+
+```tsx
+filteredEvidence.map(...)
+```
+
+### Important detail
+
+There is no separate state variable such as:
+
+```tsx
+const [filteredEvidence, setFilteredEvidence] = useState([]);
+```
+
+That avoids a second source of truth that could become stale when the evidence or filters change.
+
+The filter state is stored because it represents user input. The filtered/sorted evidence list is derived data, so it is recalculated from the full list and current state on every render.
+
+The implementation is in `EvidenceCatalogueView.tsx`, and the task is marked complete in `EXERCISE_5.md`.
+
+Validation passed:
+
+- `npm run build`
+- `npm run lint`
+- `git diff --check`
+
+Yes. Demo 4 Task 1 was already implemented in the React Evidence Catalogue before you asked about it.
+
+The code already:
+
+- Stored only the filter and sort selections in `useState`.
+- Started from the full `evidence` list.
+- Applied `.filter(...)`.
+- Applied `.sort(...)`.
+- Rendered the derived result.
+- Did not store `filteredEvidence` with `useState`.
+
+I verified that implementation and marked the checklist item complete in `EXERCISE_5.md`. No additional filtering logic was needed.
+
+- [x] Do the same for the Dashboard's bookmark count and the Workspace's bookmarked-items list: both should be derived from the same single source of truth for bookmarks, not duplicated state.
+
+I’ll verify both views use the same `state.bookmarks` source of truth—Dashboard count from its length and Workspace list by filtering evidence against those IDs—then mark the task complete and run validation.
+
+Search for `bookmarkCount|state\.bookmarks|bookmarkedEvidence|bookmarked-items`
+
+Search for `Do the same for the Dashboard's bookmark count`
+
+Read
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\dashboard\\DashboardContainer.tsx"
+}
+
+Read , lines 15 to 30
+Completed with input: {
+"path": "C:\\Users\\barbs\\VS Programs\\Advance Web Engineering\\Exercise 1\\mystery-road-awe-2026\\js\\features\\workspace\\WorkspaceView.tsx",
+"view_range": [
+15,
+30
+]
+}
+
+Edit
+
+Ran terminal command: npm run build
+
+Ran terminal command: npm run lint
+
+Ran terminal command: git diff --check; git status --short
+
+Demo 4 Task 2 was already implemented.
+
+Both views derive their bookmark information from the same shared source:
+
+```tsx
+state.bookmarks;
+```
+
+### Dashboard
+
+In `DashboardContainer.tsx`, the Dashboard count is derived from the bookmark ID array:
+
+```tsx
+bookmarkCount={state.bookmarks.length}
+```
+
+The count is passed to the presentational Dashboard view and displayed there.
+
+### Workspace
+
+In `WorkspaceView.tsx`, the bookmarked evidence list is derived by filtering the complete evidence list against the same bookmark IDs:
+
+```tsx
+const bookmarkedEvidence = evidence.filter((item) =>
+  state.bookmarks.includes(item.id),
+);
+```
+
+There is no separate bookmarked-items state in Workspace.
+
+### Why this prevents drift
+
+When a bookmark is toggled, the Evidence Catalogue updates:
+
+```tsx
+state.bookmarks = toggleBookmarkId(state.bookmarks, item.id);
+```
+
+Then:
+
+- Dashboard reads the new array length.
+- Workspace filters using the new array.
+- Both views stay synchronized automatically.
+
+The task is now marked complete in `EXERCISE_5.md`.
+
+Validation passed:
+
+- `npm run build`
+- `npm run lint`
+
+Yes, this was already implemented before you asked.
+
+The existing code already used `state.bookmarks` as the single source of truth:
+
+- Dashboard derived its count with `state.bookmarks.length`.
+- Workspace derived its list with `evidence.filter(...)` and `state.bookmarks.includes(item.id)`.
+- Neither view had a separate duplicate bookmark state.
+
+I verified the implementation and marked the task complete in `EXERCISE_5.md`. No additional application code was required.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What's the rule for deciding whether something belongs in `useState` versus being computed inline (or via `useMemo`) during render? Apply that rule to the filtered evidence list and justify your answer.
+- [x] What's the rule for deciding whether something belongs in `useState` versus being computed inline (or via `useMemo`) during render? Apply that rule to the filtered evidence list and justify your answer.
+
+The rule is:
+
+> Store values in `useState` when they represent independent information that can change over time because of user actions or other events. Compute values during render when they can be completely derived from existing props and state.
+
+Use `useMemo` only when that derived calculation is expensive enough to justify memoization. It should not be used to create a second source of truth.
+
+### Applied to the filtered evidence list
+
+The filtered evidence list should **not** be stored in `useState`.
+
+The source data is:
+
+```tsx
+evidence;
+```
+
+The user-controlled inputs are stored in state:
+
+```tsx
+const [search, setSearch] = useState("");
+const [typeFilter, setTypeFilter] = useState("");
+const [personFilter, setPersonFilter] = useState("");
+const [locationFilter, setLocationFilter] = useState("");
+const [statusFilter, setStatusFilter] = useState("");
+const [relevanceFilter, setRelevanceFilter] = useState("");
+const [sort, setSort] = useState<EvidenceSort>("date-desc");
+```
+
+The visible list is fully determined by those values, so it is derived inline:
+
+```tsx
+const filteredEvidence = evidence
+  .filter(/* current filter state */)
+  .sort(/* current sort state */);
+```
+
+If we stored it separately:
+
+```tsx
+const [filteredEvidence, setFilteredEvidence] = useState([]);
+```
+
+we would have two sources of truth:
+
+1. The complete `evidence` list.
+2. A separately stored filtered list.
+
+Those values could drift out of sync when:
+
+- New evidence loads.
+- A filter changes.
+- Evidence is updated.
+- The sort order changes.
+- A bookmark or review status changes.
+
+Computing it during render guarantees that the displayed list always reflects the current evidence and current filter/sort state. In this application, the list is not large or expensive enough to require `useMemo`, so inline derivation is the clearest choice.
+
 - [ ] The vanilla app had two related bugs here: a dashboard bookmark count that could go stale (because it only re-rendered on a view's first visit), and a `filteredEvidence` variable that was sometimes literally the _same array reference_ as the master list. Explain, concretely, why deriving these values during render instead of storing them makes **both** of those bug classes structurally impossible, not just less likely.
 
 ---
