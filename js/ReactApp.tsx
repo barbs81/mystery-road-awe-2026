@@ -40,6 +40,7 @@ export default function App() {
     locations: state.allLocations,
     timeline: state.allTimeline,
   });
+  const [isLoading, setIsLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -92,6 +93,8 @@ export default function App() {
         const message =
           error instanceof Error ? error.message : "Could not load case data.";
         setDataError(message);
+      } finally {
+        setIsLoading(false);
       }
     }
 
@@ -117,7 +120,11 @@ export default function App() {
     <HashRouter>
       <BookmarkProvider value={{ bookmarks, onToggleBookmark: toggleBookmark }}>
         <Header />
-        {dataError ? (
+        {isLoading ? (
+          <main className="app-main">
+            <p>Loading case file...</p>
+          </main>
+        ) : dataError ? (
           <main className="app-main">
             <p role="alert">{dataError}</p>
           </main>
