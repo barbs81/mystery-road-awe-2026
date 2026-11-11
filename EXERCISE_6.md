@@ -1469,13 +1469,197 @@ Auf Englisch:
 
 **Tasks**
 
-- [ ] Replace at least one view's data source (previously the static `data/*.json` fetch/import) with a real `fetch()` call to your new backend, wired up inside a `useEffect`.
-- [ ] Do the same for the rest of the app's data sources, so the whole app now reads from your backend rather than static files.
+- [x] Replace at least one view's data source (previously the static `data/*.json` fetch/import) with a real `fetch()` call to your new backend, wired up inside a `useEffect`.
+
+Ich stelle die zentrale Datenladung in `ReactApp` von den statischen JSON-Pfaden auf die neue API um. Dadurch beziehen anschließend alle Views ihre Daten über diesen einen `useEffect`, ohne dass die einzelnen Views selbst geändert werden müssen.
+
+Der bestehende Lade-Effect ruft jetzt die fünf API-Routen auf. Ich überprüfe nun TypeScript/Build, Linter und ob die API-Routen erreichbar sind, damit die Anwendung nicht nur kompiliert, sondern auch lokal mit dem Backend funktioniert.
+
+## Was wurde geändert?
+
+In `ReactApp.tsx` wurde die Datenquelle im bestehenden `useEffect` geändert.
+
+Vorher wurden die JSON-Dateien direkt geladen:
+
+```tsx
+fetch("data/case.json");
+fetch("data/people.json");
+fetch("data/locations.json");
+fetch("data/evidence.json");
+fetch("data/timeline.json");
+```
+
+Jetzt werden die Daten vom Node.js-Backend geladen:
+
+```tsx
+fetch("http://localhost:3001/api/case");
+fetch("http://localhost:3001/api/people");
+fetch("http://localhost:3001/api/locations");
+fetch("http://localhost:3001/api/evidence");
+fetch("http://localhost:3001/api/timeline");
+```
+
+Dafür gibt es diese Konstante:
+
+```tsx
+const API_BASE_URL = "http://localhost:3001/api";
+```
+
+Die Requests werden weiterhin innerhalb des vorhandenen `useEffect` ausgeführt und mit `Promise.all` parallel geladen:
+
+```tsx
+const [
+  caseResponse,
+  peopleResponse,
+  locationsResponse,
+  evidenceResponse,
+  timelineResponse,
+] = await Promise.all([
+  fetch(`${API_BASE_URL}/case`),
+  fetch(`${API_BASE_URL}/people`),
+  fetch(`${API_BASE_URL}/locations`),
+  fetch(`${API_BASE_URL}/evidence`),
+  fetch(`${API_BASE_URL}/timeline`),
+]);
+```
+
+## Was bedeutet das für die Views?
+
+Die einzelnen Views mussten nicht separat geändert werden. Alle Daten werden zentral in `ReactApp` geladen und anschließend über `RouteContent` an die Views weitergegeben.
+
+Damit erhalten jetzt alle Views ihre Daten über das Backend:
+
+- Dashboard
+- Evidence
+- People
+- Locations
+- Timeline
+- Workspace
+
+Die statischen JSON-Dateien werden von der React-Anwendung für diese Datenladung nicht mehr direkt verwendet.
+
+### Terminal 1: Backend
+
+```bash
+npm run server
+```
+
+### Terminal 2: Frontend
+
+```bash
+npm run dev
+```
+
+Danach
+http://localhost:5173
+
+## Überprüfung
+
+Die fünf API-Endpunkte antworteten jeweils mit `HTTP 200`.
+
+- [x] Do the same for the rest of the app's data sources, so the whole app now reads from your backend rather than static files.
+
+Im Teil 1 der Demo 5 erledigt
 
 **Questions** (depend on the tasks above)
 
-- [ ] Walk through exactly what happens, in order, from the component mounting to the data actually being available to render: what does the effect do, when does it run, and what causes the component to re-render once the data arrives?
-- [ ] What's different about your component now compared to before (when data came from a static import/fetch of a local file). Specifically in terms of what state it needs to track that it didn't need before?
+- [x] Walk through exactly what happens, in order, from the component mounting to the data actually being available to render: what does the effect do, when does it run, and what causes the component to re-render once the data arrives?
+
+Der Ablauf ist in dieser Anwendung folgender:
+
+1. **`App` wird zum ersten Mal gerendert.**  
+   Zu diesem Zeitpunkt enthält `data` zunächst die Anfangswerte aus `state`. Außerdem ist:
+
+   ```tsx
+   isLoading === true;
+   ```
+
+   Deshalb zeigt die Anwendung zunächst:
+
+   ```text
+   Loading case file...
+   ```
+
+2. **Nach dem Rendern führt React den `useEffect` aus.**  
+   Der Effect besitzt ein leeres Dependency-Array:
+
+   ```tsx
+   useEffect(() => {
+     // Daten laden
+   }, []);
+   ```
+
+   Deshalb läuft er normalerweise einmal pro Mount der Komponente. Wichtig: `useEffect` läuft nach dem ersten Rendern, nicht während des Renderns.
+
+3. **Der Effect startet `loadData()`.**  
+   Diese Funktion sendet fünf parallele `fetch`-Anfragen an das Backend:
+
+   ```text
+   /api/case
+   /api/people
+   /api/locations
+   /api/evidence
+   /api/timeline
+   ```
+
+   Dafür wird `Promise.all` verwendet. Die Funktion wartet, bis alle fünf Requests abgeschlossen sind.
+
+4. **Die Antworten werden geprüft.**  
+   Wenn eine Antwort keinen erfolgreichen HTTP-Status besitzt, wird ein Fehler ausgelöst:
+
+   ```tsx
+   if (!caseResponse.ok || ...) {
+     throw new Error(...);
+   }
+   ```
+
+5. **Die JSON-Daten werden aus den Responses gelesen.**  
+   Danach werden die Daten in ein gemeinsames `nextData`-Objekt zusammengefasst:
+
+   ```tsx
+   const nextData: AppData = {
+     caseData: await caseResponse.json(),
+     people: await peopleResponse.json(),
+     locations: await locationsResponse.json(),
+     evidence: await evidenceResponse.json(),
+     timeline: await timelineResponse.json(),
+   };
+   ```
+
+6. **React-State wird aktualisiert.**  
+   Die geladenen Daten werden mit:
+
+   ```tsx
+   setData(nextData);
+   ```
+
+   in den React-State geschrieben.
+
+   Zusätzlich wird:
+
+   ```tsx
+   setIsLoading(false);
+   ```
+
+   gesetzt, damit die Loading-Anzeige verschwindet.
+
+7. **Die State-Änderung löst einen neuen Render aus.**  
+   `setData` und `setIsLoading` informieren React darüber, dass sich State geändert hat. React rendert `App` deshalb erneut.
+
+8. **Beim erneuten Rendern sind die Daten verfügbar.**  
+   Jetzt ist `isLoading` `false`, `data` enthält die Backend-Daten und React rendert:
+
+   ```tsx
+   <RouteContent data={data} ... />
+   ```
+
+   `RouteContent` gibt die Daten anschließend an die jeweilige View weiter, zum Beispiel an Dashboard, Evidence, People, Locations und Timeline.
+
+Auf Englisch:
+
+> When `App` mounts, it renders first with its initial state. `isLoading` is `true`, so the loading message is displayed. After the initial render, React runs the `useEffect` because it has an empty dependency array. The effect starts the asynchronous `loadData` function, which sends five parallel `fetch` requests to the backend using `Promise.all`. Once all responses arrive, the code checks that they were successful, parses the JSON data, and stores the result with `setData`. It also sets `isLoading` to `false`. These state updates cause React to render the component again. During that render, the loaded data is passed through `RouteContent` to the appropriate views, so the actual case data becomes available in the UI. If the requests fail, the error state is set instead and an error message is rendered.
+
+- [x] What's different about your component now compared to before (when data came from a static import/fetch of a local file). Specifically in terms of what state it needs to track that it didn't need before?
 
 ---
 

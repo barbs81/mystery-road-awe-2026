@@ -27,6 +27,8 @@ type AppData = {
   timeline: TimelineEvent[];
 };
 
+const API_BASE_URL = "http://localhost:3001/api";
+
 export default function App() {
   console.log("App render"); //innerhalb App() aber außerhalb useEffect, wird bei jedem Rendern der App aufgerufen
 
@@ -62,11 +64,11 @@ export default function App() {
           evidenceResponse,
           timelineResponse,
         ] = await Promise.all([
-          fetch("data/case.json"),
-          fetch("data/people.json"),
-          fetch("data/locations.json"),
-          fetch("data/evidence.json"),
-          fetch("data/timeline.json"),
+          fetch(`${API_BASE_URL}/case`),
+          fetch(`${API_BASE_URL}/people`),
+          fetch(`${API_BASE_URL}/locations`),
+          fetch(`${API_BASE_URL}/evidence`),
+          fetch(`${API_BASE_URL}/timeline`),
         ]);
 
         if (
