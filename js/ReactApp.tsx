@@ -27,6 +27,8 @@ type AppData = {
 };
 
 export default function App() {
+  console.log("App render"); //innerhalb App() aber außerhalb useEffect, wird bei jedem Rendern der App aufgerufen
+
   const [bookmarks, setBookmarks] = useState<string[]>(() => [
     ...state.bookmarks,
   ]);
@@ -44,6 +46,7 @@ export default function App() {
   const [dataError, setDataError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log("Use Effect in App"); //innerhalb useEffect, wird nur beim ersten Rendern der App aufgerufen
     loadBookmarksFromStorage();
     loadNotesFromStorage();
     setBookmarks([...state.bookmarks]);
