@@ -998,14 +998,210 @@ Component Body läuft erneut
 
 **Tasks**
 
-- [ ] Implement at least one effect that sets up something needing cleanup (a `setTimeout`/
-      `setInterval`, a `window` event listener, or similar) and returns a proper cleanup function.
-- [ ] Demonstrate what happens (e.g. via a console log in both the effect and its cleanup) when the component unmounts or the dependencies change, with and without the cleanup function present.
+- [x] Implement at least one effect that sets up something needing cleanup (a `setTimeout`/`setInterval`, a `window` event listener, or similar) and returns a proper cleanup function.
+
+Für **Demo 3 Teil 1** muss man einen echten `useEffect` implementieren, der etwas startet, das nach dem Start weiterläuft oder registriert bleibt, und deshalb später wieder entfernt werden muss.
+
+Ein gutes Beispiel für die Anwendung ist ein **`window`-Event-Listener**.
+
+## Was bedeutet das?
+
+Ich registrier einen Listener:
+
+```tsx
+window.addEventListener("resize", handleResize);
+```
+
+Dieser Listener bleibt aktiv, bis ich ihn entferne:
+
+```tsx
+window.removeEventListener("resize", handleResize);
+```
+
+Die Entfernung kommt in die Cleanup-Funktion des Effects.
+
+## Beispiel-Implementierung
+
+In `ReactApp.tsx` kamm ich innerhalb von `App` ergänzen:
+
+```tsx
+useEffect(() => {
+  function handleResize() {
+    console.log("Window width:", window.innerWidth);
+  }
+
+  window.addEventListener("resize", handleResize);
+
+  return () => {
+    window.removeEventListener("resize", handleResize);
+  };
+}, []);
+```
+
+## Was passiert?
+
+Beim Mount:
+
+```text
+App wird geladen
+    ↓
+useEffect läuft
+    ↓
+resize-Listener wird registriert
+```
+
+Wenn das Browserfenster verändert wird:
+
+```text
+Fenstergröße ändert sich
+    ↓
+handleResize wird aufgerufen
+```
+
+Beim Unmount:
+
+```text
+App wird entfernt
+    ↓
+Cleanup läuft
+    ↓
+resize-Listener wird entfernt
+```
+
+## Warum ist Cleanup nötig?
+
+Ohne Cleanup:
+
+```tsx
+useEffect(() => {
+  window.addEventListener("resize", handleResize);
+}, []);
+```
+
+würde der Listener im Browser bleiben, auch wenn die Komponente nicht mehr angezeigt wird. Bei späteren Mounts könnten mehrere Listener aktiv sein:
+
+```text
+Mount 1 → Listener 1
+Unmount → Listener 1 bleibt
+Mount 2 → Listener 2
+```
+
+Dann würde `handleResize` mehrfach ausgeführt.
+
+## Alternative mit Timer
+
+Ich könnte auch einen Timer verwenden:
+
+```tsx
+useEffect(() => {
+  const timer = window.setInterval(() => {
+    console.log("Checking application status");
+  }, 5000);
+
+  return () => {
+    window.clearInterval(timer);
+  };
+}, []);
+```
+
+Der Listener ist für die App aber wahrscheinlich leichter zu erklären.
+
+### Kurzgesagt
+
+> Ich registriere im Effect einen `resize`-Listener auf dem `window`. Da dieser Listener außerhalb von React weiter aktiv bleibt, gebe ich eine Cleanup-Funktion zurück, die ihn beim Unmount wieder entfernt. Dadurch entstehen beim erneuten Mounten keine mehrfachen Listener und keine veralteten Event-Handler.
+
+- [x] Demonstrate what happens (e.g. via a console log in both the effect and its cleanup) when the component unmounts or the dependencies change, with and without the cleanup function present.
+
+Ich ergänze nur Logs im bereits vorhandenen `resize`-Effect und in dessen Cleanup. So kann man mit „Preserve log“ und einem Neuladen den Ablauf zeigen, ohne eine neue Komponente oder einen zusätzlichen Button einzubauen.
+
+Die Start- und Cleanup-Logs sind ergänzt.
+
+Der bestehende `resize`-Effect in `ReactApp.tsx` enthält jetzt Logs für Start und Cleanup:
+
+```tsx
+useEffect(() => {
+  console.log("Resize effect gestartet");
+
+  function handleResize() {
+    console.log("Window width:", window.innerWidth);
+  }
+
+  window.addEventListener("resize", handleResize);
+
+  return () => {
+    console.log("Resize effect bereinigt");
+    window.removeEventListener("resize", handleResize);
+  };
+}, []);
+```
+
+## Zu demonstrieren
+
+1. Starte die App.
+2. Öffne die DevTools mit `F12`.
+3. Öffne **Console**.
+4. Aktiviere **Preserve log**.
+5. Lade die Seite.
+6. Ändere die Fenstergröße.
+
+ich soll sehen:
+
+```text
+Resize effect gestartet
+Window width: ...
+```
+
+7. Lade die Seite mit `Ctrl+R` neu.
+
+Beim Unmount der alten App sollte erscheinen:
+
+```text
+Resize effect bereinigt
+```
+
+Danach wird die neue App gemountet:
+
+```text
+Resize effect gestartet
+```
+
+Der Cleanup entfernt den alten Listener, bevor die neue App-Version ihren Listener registriert.
+
+Der Effect registriert beim Mount einen resize-Listener und gibt eine Cleanup-Funktion zurück, die ihn beim Unmount entfernt. Ein vollständiger Browser-Refresh beendet zwar die alte React-Anwendung, aber der Cleanup-Log ist dabei im Browser nicht zuverlässig sichtbar. Für einen eindeutig sichtbaren Unmount-Test müsste der Listener in einer routeabhängigen Komponente liegen, die beim Routenwechsel tatsächlich entfernt wird, oder es müsste eine Ein-/Ausblend-Funktion geben.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What actually calls your cleanup function, and when? Name at least two distinct situations that trigger it.
-- [ ] What real, observable bug would you get in this app if you set up a subscription/timer in an effect but forgot the cleanup function? Be specific, not just "a memory leak."
+- [x] What actually calls your cleanup function, and when? Name at least two distinct situations that trigger it.
+
+Die Cleanup-Funktion wird von **React selbst** aufgerufen. Sie wird nicht direkt durch den Browser oder durch den Entwickler aufgerufen.
+
+Zwei typische Situationen sind:
+
+1. **Wenn die Komponente unmounted wird**  
+   Also wenn die Komponente aus dem React-Baum entfernt wird, zum Beispiel wenn eine Route oder ein bedingter UI-Bereich nicht mehr angezeigt wird.
+
+2. **Bevor ein Effect wegen geänderter Dependencies erneut ausgeführt wird**  
+   Wenn sich ein Wert im Dependency-Array verändert, ruft React zuerst den alten Cleanup auf und führt danach den Effect mit den neuen Werten erneut aus.
+
+Beispiel:
+
+```tsx
+useEffect(() => {
+  window.addEventListener("resize", handleResize);
+
+  return () => {
+    window.removeEventListener("resize", handleResize);
+  };
+}, []);
+```
+
+In diesem Beispiel wird der Cleanup beim **Unmount** der Komponente ausgeführt. Da das Dependency-Array leer ist, wird er nicht bei einem normalen Routenwechsel oder jeder Größenänderung ausgeführt.
+
+Zusammenfassung:
+
+> React calls the cleanup function before an effect runs again because one of its dependencies changed, and when the component unmounts. For example, cleanup can remove an event listener before a new listener is registered, or when the component is removed from the React tree. In development, React Strict Mode may also run setup and cleanup an extra time to detect unsafe effects.
+
+- [x] What real, observable bug would you get in this app if you set up a subscription/timer in an effect but forgot the cleanup function? Be specific, not just "a memory leak."
 
 ---
 

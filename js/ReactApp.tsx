@@ -45,19 +45,6 @@ export default function App() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
-  const [demoValue, setDemoValue] = useState(0);
-
-  useEffect(() => {
-    console.log("Effect mit leerem Array: []");
-  }, []);
-
-  useEffect(() => {
-    console.log("Effect mit Dependency: [demoValue]", demoValue);
-  }, [demoValue]);
-
-  useEffect(() => {
-    console.log("Effect ohne Dependency-Array");
-  });
 
   useEffect(() => {
     console.log("Use Effect in App"); //innerhalb useEffect, wird nur beim ersten Rendern der App aufgerufen
@@ -118,6 +105,21 @@ export default function App() {
     void loadData();
   }, []);
 
+  useEffect(() => {
+    console.log("Resize effect gestartet");
+
+    function handleResize() {
+      console.log("Window width:", window.innerWidth);
+    }
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      console.log("Resize effect bereinigt");
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   function toggleBookmark(evidenceId: string) {
     const nextBookmarks = bookmarks.includes(evidenceId)
       ? bookmarks.filter((id) => id !== evidenceId)
@@ -137,12 +139,6 @@ export default function App() {
     <HashRouter>
       <BookmarkProvider value={{ bookmarks, onToggleBookmark: toggleBookmark }}>
         <DocumentTitle />
-        <button
-          type="button"
-          onClick={() => setDemoValue((value) => value + 1)}
-        >
-          Test value: {demoValue}
-        </button>
         <Header />
         {isLoading ? (
           <main className="app-main">
