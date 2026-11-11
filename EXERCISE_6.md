@@ -1203,20 +1203,265 @@ Zusammenfassung:
 
 - [x] What real, observable bug would you get in this app if you set up a subscription/timer in an effect but forgot the cleanup function? Be specific, not just "a memory leak."
 
+Ein konkreter Fehler wäre beim `resize`-Listener:
+
+Wenn die Komponente erneut gemountet wird oder der Effect wegen einer Dependency erneut läuft, aber der alte Listener nicht entfernt wird, bleibt er aktiv. Bei jeder Fenstergrößenänderung werden dann mehrere Listener ausgeführt.
+
+Beobachtbares Verhalten:
+
+- `Window width: ...` erscheint mehrfach für ein einziges Resize-Ereignis.
+- Die Anwendung führt dieselbe Resize-Logik unnötig mehrfach aus.
+- Bei einem Timer könnten mehrere `setInterval`- oder `setTimeout`-Aufrufe gleichzeitig laufen.
+- Dadurch könnten beispielsweise Daten mehrfach geladen, Zustände mehrfach aktualisiert oder UI-Updates unnötig oft ausgelöst werden.
+
+Zusammenfassung:
+
+> In this app, if the resize effect added a `window` resize listener but did not remove it in its cleanup function, remounting the component or re-running the effect could register multiple listeners. Then one window resize would trigger the handler several times, so the console would log the window width repeatedly and any resize-related UI update would happen multiple times. With a timer, the same problem could cause repeated or duplicate updates because old timers would continue running.
+
 ---
 
 ## Demo 4 — Build the read-only Node backend
 
 **Tasks**
 
-- [ ] Set up a minimal Node.js server (Express or equivalent) with one GET endpoint per data resource (case, evidence, people, locations, timeline), each returning the same shape of data as the corresponding `data/*.json` file does today.
-- [ ] Add a way to deliberately simulate real-world conditions for testing later demos: an artificial delay (configurable, e.g. via a query param or env var) on at least one endpoint, and a way to make one endpoint return an error response (e.g. a 500) on demand.
-- [ ] Confirm the server runs locally alongside `vite dev` and is documented (a README section is enough) as dev-only (not part of the Exercise 2 deploy pipeline).
+- [x] Set up a minimal Node.js server (Express or equivalent) with one GET endpoint per data resource (case, evidence, people, locations, timeline), each returning the same shape of data as the corresponding `data/*.json` file does today.
+
+## Demo 4 Teil 1 wurde implementiert
+
+Ich habe einen kleinen lokalen Node.js-Server erstellt:
+
+- Datei: `server/server.js`
+- Start-Script in `package.json`
+- Dokumentation in `README.md`
+
+### Die fünf GET-Endpunkte
+
+Der Server stellt diese Routen bereit:
+
+```text
+GET http://localhost:3001/api/case
+GET http://localhost:3001/api/evidence
+GET http://localhost:3001/api/people
+GET http://localhost:3001/api/locations
+GET http://localhost:3001/api/timeline
+```
+
+Jede Route liest die entsprechende Datei aus `public/data`:
+
+```text
+/api/case       → public/data/case.json
+/api/evidence   → public/data/evidence.json
+/api/people     → public/data/people.json
+/api/locations  → public/data/locations.json
+/api/timeline   → public/data/timeline.json
+```
+
+Die Daten werden also nicht neu geschrieben oder verändert. Der Server liefert dieselben Datenstrukturen wie die vorhandenen JSON-Dateien:
+
+- `case` liefert ein Objekt
+- `evidence` liefert ein Array
+- `people` liefert ein Array
+- `locations` liefert ein Array
+- `timeline` liefert ein Array
+
+### Wie startet man den Server?
+
+Im ersten Terminal:
+
+```bash
+npm run server
+```
+
+Der Server läuft dann unter:
+
+```text
+http://localhost:3001
+```
+
+In einem zweiten Terminal startet man Vite:
+
+```bash
+npm run dev
+```
+
+Dann laufen Frontend und Backend gleichzeitig:
+
+```text
+Frontend: http://localhost:5173
+Backend:  http://localhost:3001
+```
+
+Ich habe außerdem CORS für `http://localhost:5173` aktiviert. Dadurch darf das React-Frontend später Daten vom Node-Server laden.
+
+### Fehlerbehandlung
+
+Der Server unterstützt außerdem bereits grundlegende Fehlerantworten:
+
+- Nicht vorhandene Route → `404`
+- Andere HTTP-Methode als `GET` → `405`
+- Fehler beim Lesen einer JSON-Datei → `500`
+
+Die fünf API-Endpunkte haben beim Testen jeweils korrekt mit `HTTP 200` geantwortet.
+
+- [x] Add a way to deliberately simulate real-world conditions for testing later demos: an artificial delay (configurable, e.g. via a query param or env var) on at least one endpoint, and a way to make one endpoint return an error response (e.g. a 500) on demand.
+
+Ich ergänze die Simulation direkt im bestehenden Server: `?delay=...` wartet die angegebene Millisekundenanzahl, und `?error=1` liefert absichtlich HTTP 500. Danach dokumentiere ich konkrete Test-URLs und prüfe die Antworten.
+
+## Was wurde gemacht?
+
+Im Server `server.js` gibt es jetzt zwei Query-Parameter.
+
+### 1. Künstliche Verzögerung
+
+Mit `delay` kann man eine Verzögerung in Millisekunden simulieren:
+
+```text
+http://localhost:3001/api/evidence?delay=3000
+```
+
+Das bedeutet:
+
+- Der Server wartet 3 Sekunden.
+- Danach liefert er die normalen Evidence-Daten.
+- Der Wert ist auf maximal 10 Sekunden begrenzt.
+
+Das ist später nützlich, um im React-Frontend den Loading-Zustand sichtbar zu machen.
+
+Beispiel:
+
+```text
+http://localhost:3001/api/case?delay=5000
+```
+
+### 2. Absichtlicher Serverfehler
+
+Mit `error=1` kannst du eine HTTP-500-Fehlerantwort auslösen:
+
+```text
+http://localhost:3001/api/evidence?error=1
+```
+
+Der Server liefert dann:
+
+```json
+{
+  "error": "Simulated server error for Exercise 6 testing."
+}
+```
+
+Das ist später nützlich, um den Error-State im React-Frontend zu testen.
+
+### 3. Beide Situationen kombinieren
+
+Du kannst Verzögerung und Fehler kombinieren:
+
+```text
+http://localhost:3001/api/evidence?delay=3000&error=1
+```
+
+Dann wartet der Server drei Sekunden und gibt anschließend einen Fehler mit HTTP 500 zurück.
+
+## Dokumentation
+
+Die Test-URLs wurden in `README.md` ergänzt.
+
+Außerdem wurde die Aufgabe in `EXERCISE_6.md` als erledigt markiert.
+
+## Überprüfung
+
+Ich habe getestet:
+
+```text
+/api/case       → HTTP 200
+/api/evidence   → HTTP 200
+/api/people     → HTTP 200
+/api/locations  → HTTP 200
+/api/timeline   → HTTP 200
+```
+
+Zusätzlich:
+
+```text
+/api/evidence?delay=300
+```
+
+lieferte die Daten nach ungefähr 300 Millisekunden.
+
+Und:
+
+```text
+/api/evidence?error=1
+```
+
+lieferte korrekt:
+
+````text
+HTTP 500
+``
+
+- [X] Confirm the server runs locally alongside `vite dev` and is documented (a README section is enough) as dev-only (not part of the Exercise 2 deploy pipeline).
+
+http://localhost:5173 --> npm run dev
+http://localhost:3001/api/case --> npm run server
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why does this exercise ask for artificial delay/error controls on the backend, instead of just pointing the frontend at the static JSON files directly (as it already could)? What could you _not_ teach convincingly without them?
-- [ ] What is CORS, and did you have to deal with it running your frontend (from Vite's dev server) against this separate backend server? If yes, what did you configure and why? If no, why not?
+- [X] Why does this exercise ask for artificial delay/error controls on the backend, instead of just pointing the frontend at the static JSON files directly (as it already could)? What could you _not_ teach convincingly without them?
+
+Die künstliche Verzögerung und die absichtlich auslösbaren Fehler werden benötigt, damit das Verhalten einer echten Netzwerkverbindung sichtbar und testbar wird.
+
+Bei statischen JSON-Dateien vom lokalen Vite-Server antwortet `fetch()` normalerweise sehr schnell und zuverlässig. Dadurch sieht man den Loading- oder Error-Zustand oft gar nicht oder nur sehr kurz.
+
+Mit den Backend-Steuerungen kann man realistische Situationen simulieren:
+
+- langsame Netzwerkverbindung
+- verzögerte Serverantwort
+- nicht erreichbarer oder fehlerhafter Server
+- HTTP-Fehler wie `500 Internal Server Error`
+
+Ohne diese Funktionen könnte man folgende Dinge nicht überzeugend demonstrieren:
+
+1. **Loading-State**
+   Man könnte kaum sichtbar zeigen, dass während eines laufenden Requests ein Ladehinweis erscheint.
+
+2. **Error-State**
+   Man könnte nicht realistisch zeigen, wie React auf einen fehlgeschlagenen Request oder eine HTTP-500-Antwort reagiert.
+
+3. **Request-Abbruch und Cleanup**
+   Später kann man demonstrieren, dass ein laufender Request beim Unmount oder bei einer neuen Anfrage mit `AbortController` abgebrochen wird.
+
+4. **Robuster Umgang mit asynchronen Daten**
+   Man kann zeigen, dass die Benutzeroberfläche nicht einfach leer bleibt, sondern zwischen `loading`, `error`, `success` und später auch `empty` unterscheidet.
+
+Auf Englisch:
+
+> The artificial delay and error controls make asynchronous behavior observable and testable. Static JSON files usually respond immediately and successfully, so the loading and error states would be too fast or impossible to trigger reliably. Without these controls, we could not convincingly demonstrate a visible loading state, handling of HTTP errors, request cancellation with `AbortController`, or robust UI behavior while data is still unavailable.
+
+
+- [X] What is CORS, and did you have to deal with it running your frontend (from Vite's dev server) against this separate backend server? If yes, what did you configure and why? If no, why not?
+
+**CORS** steht für **Cross-Origin Resource Sharing**. Es ist eine Browser-Sicherheitsregel, die verhindert, dass eine Webseite ohne Erlaubnis Anfragen an einen anderen Ursprung sendet.
+
+In unserem Fall sind Frontend und Backend unterschiedliche Origins:
+
+```text
+Frontend: http://localhost:5173
+Backend:  http://localhost:3001
+````
+
+Obwohl beide `localhost` verwenden, sind die Ports unterschiedlich. Deshalb behandelt der Browser sie als verschiedene Origins.
+
+Ja, ich habe CORS im Backend berücksichtigt. In `server.js` wird folgende Antwort-Header-Konfiguration gesetzt:
+
+```js
+"Access-Control-Allow-Origin": "http://localhost:5173"
+```
+
+Dadurch erlaubt der Node-Server dem Vite-Frontend, die API-Daten abzurufen. Ohne diesen Header könnte der Browser die Anfrage blockieren, obwohl der Server technisch erreichbar ist.
+
+Auf Englisch:
+
+> CORS stands for Cross-Origin Resource Sharing. It is a browser security mechanism that controls whether a frontend from one origin may request resources from another origin. In this project, the Vite frontend runs on `http://localhost:5173`, while the Node backend runs on `http://localhost:3001`. Because the ports are different, they are different origins. I configured the backend to return `Access-Control-Allow-Origin: http://localhost:5173`, which allows the frontend to fetch data from the backend during local development. This configuration is restricted to the Vite development origin rather than allowing every origin.
 
 ---
 

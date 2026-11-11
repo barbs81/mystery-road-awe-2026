@@ -35,6 +35,40 @@ npx serve .
 
 Then open `http://localhost:8080` (or whatever port your server prints) in your browser.
 
+## Lokale Node.js-API für Exercise 6
+
+Für Exercise 6 gibt es einen kleinen, schreibgeschützten Node.js-Server. Er ist nur für die
+lokale Entwicklung gedacht und gehört nicht zur Deployment-Pipeline von Exercise 2. Starte ihn
+im Projektordner mit:
+
+```bash
+npm run server
+```
+
+Der Server läuft auf `http://localhost:3001`. Er stellt diese GET-Endpunkte bereit:
+
+- `GET /api/case`
+- `GET /api/evidence`
+- `GET /api/people`
+- `GET /api/locations`
+- `GET /api/timeline`
+
+Für die späteren Loading- und Error-State-Demos können reale Bedingungen simuliert werden:
+
+- Künstliche Verzögerung von drei Sekunden:
+  `http://localhost:3001/api/evidence?delay=3000`
+- Absichtlicher Serverfehler:
+  `http://localhost:3001/api/evidence?error=1`
+- Beides gleichzeitig:
+  `http://localhost:3001/api/evidence?delay=3000&error=1`
+
+Der `delay`-Wert wird in Millisekunden angegeben und auf maximal zehn Sekunden begrenzt.
+Der Parameter `error=1` erzeugt eine HTTP-500-Antwort. Ohne diese Parameter liefern die
+Endpunkte weiterhin die normalen JSON-Daten.
+
+Starte `npm run dev` in einem zweiten Terminal, damit Vite und die API gleichzeitig laufen.
+Die API erlaubt Anfragen vom Vite-Entwicklungsserver unter `http://localhost:5173`.
+
 ## Features
 
 - **Dashboard** — case summary and key statistics calculated from the loaded case data.

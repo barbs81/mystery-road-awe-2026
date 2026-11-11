@@ -17,6 +17,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
+    "server": "node server/server.js",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
