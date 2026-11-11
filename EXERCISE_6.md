@@ -588,15 +588,409 @@ Die aktuelle Variante bleibt eine Berechnung ohne unerwünschte Veränderung der
 
 **Tasks**
 
-- [ ] Write a small `useEffect` example (can be a throwaway one first) with an empty dependency
-      array, one with a populated dependency array, and one with no array at all, and observe how
-      often each one actually runs.
-- [ ] Find a real, justified use for `useEffect` you'll need in this app (loading data is coming in Demo 5, so pick something else — e.g. syncing the document title to the current view).
+- [x] Write a small `useEffect` example (can be a throwaway one first) with an empty dependency array, one with a populated dependency array, and one with no array at all, and observe how often each one actually runs.
+
+## Demo 2 – Teil 1: Drei `useEffect`-Varianten vergleichen
+
+Du sollst drei Effects vergleichen:
+
+1. `useEffect` mit leerem Dependency-Array: `[]`
+2. `useEffect` mit einer Abhängigkeit: `[demoValue]`
+3. `useEffect` ohne Dependency-Array
+
+### 1. Temporären Test-State hinzufügen
+
+In `ReactApp.tsx`.
+
+Ich habe dort bereits:
+
+```tsx
+import { useEffect, useState } from "react";
+```
+
+Füge innerhalb der `App`-Funktion vor dem ersten `useEffect` diesen temporären State ein:
+
+```tsx
+const [demoValue, setDemoValue] = useState(0);
+```
+
+### 2. Drei temporäre Effects hinzufügen
+
+Füge direkt darunter diese drei Effects ein:
+
+```tsx
+useEffect(() => {
+  console.log("Effect mit leerem Array: []");
+}, []);
+
+useEffect(() => {
+  console.log("Effect mit Dependency: [demoValue]", demoValue);
+}, [demoValue]);
+
+useEffect(() => {
+  console.log("Effect ohne Dependency-Array");
+});
+```
+
+### 3. Temporären Button hinzufügen
+
+Füge im JSX innerhalb des `BookmarkProvider`, zum Beispiel direkt vor `<Header />`, diesen Button ein:
+
+```tsx
+<button type="button" onClick={() => setDemoValue((value) => value + 1)}>
+  Test value: {demoValue}
+</button>
+```
+
+Damit kann man bewusst einen State-Change auslösen.
+
+## Was zu beobachten ist
+
+### Effect mit `[]`
+
+```tsx
+useEffect(() => {
+  console.log("Effect mit leerem Array: []");
+}, []);
+```
+
+Er läuft nach dem ersten Render.
+
+In der Entwicklungsumgebung kann React Strict Mode ihn absichtlich mehrmals ausführen. Deshalb können eventuell zwei Ausgaben erscheinen. Das ist ein Entwicklungsverhalten.
+
+### Effect mit `[demoValue]`
+
+```tsx
+useEffect(() => {
+  console.log("Effect mit Dependency: [demoValue]", demoValue);
+}, [demoValue]);
+```
+
+Er läuft:
+
+- einmal nach dem ersten Render,
+- erneut, wenn `demoValue` geändert wird,
+- nicht bei einem Render, wenn `demoValue` unverändert bleibt.
+
+Wenn man den Button dreimal klickt:
+
+```text
+Effect mit Dependency: [demoValue] 0
+Effect mit Dependency: [demoValue] 1
+Effect mit Dependency: [demoValue] 2
+Effect mit Dependency: [demoValue] 3
+```
+
+### Effect ohne Array
+
+```tsx
+useEffect(() => {
+  console.log("Effect ohne Dependency-Array");
+});
+```
+
+Er läuft nach jedem Render.
+
+Zum Beispiel:
+
+```text
+Render 1 → Effect
+Render 2 → Effect
+Render 3 → Effect
+```
+
+## Erwartete Zusammenfassung
+
+| Effect                       | Wann läuft er?                                                                           |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `useEffect(fn, [])`          | Nach dem initialen Render; in Strict Mode eventuell zusätzlich zur Entwicklungskontrolle |
+| `useEffect(fn, [demoValue])` | Nach dem initialen Render und wenn `demoValue` sich ändert                               |
+| `useEffect(fn)`              | Nach jedem Render                                                                        |
+
+## Wichtig
+
+Nach dem Test alles entfernen:
+
+- `demoValue`
+- die drei Test-Effects
+- den temporären Button
+
+Diese Beispiele sind nur zum Beobachten gedacht. Der eigentliche Zweck ist, das Verhalten von Dependency-Arrays praktisch zu sehen.
+
+- [x] Find a real, justified use for `useEffect` you'll need in this app (loading data is coming in Demo 5, so pick something else — e.g. syncing the document title to the current view).
+
+Die Aufgabe verlangt ausdrücklich, eine echte, begründete Verwendung von `useEffect` zu finden und zu implementieren.
+
+Ein gutes Beispiel für die App ist die Synchronisierung des Browser-Titels mit der aktuellen Route:
+
+```text
+#/dashboard  → Project ReMotion – Dashboard
+#/evidence   → Project ReMotion – Evidence
+#/workspace  → Project ReMotion – Workspace
+```
+
+Der Browser-Titel gehört nicht direkt zur React-UI. Er verändert die externe Browser-Umgebung:
+
+```tsx
+document.title = "Project ReMotion – Evidence";
+```
+
+Deshalb gehört diese Aktion in `useEffect` und nicht einfach direkt in den Render-Code.
+
+Eine passende Umsetzung könnte in einer kleinen Komponente innerhalb von `ReactApp.tsx` oder im Header erfolgen:
+
+```tsx
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+
+function DocumentTitle() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      "/dashboard": "Project ReMotion – Dashboard",
+      "/evidence": "Project ReMotion – Evidence",
+      "/workspace": "Project ReMotion – Workspace",
+      "/timeline": "Project ReMotion – Timeline",
+      "/team/people": "Project ReMotion – People",
+      "/team/locations": "Project ReMotion – Locations",
+    };
+
+    document.title =
+      titles[location.pathname] ?? "Project ReMotion – Investigation Portal";
+  }, [location.pathname]);
+
+  return null;
+}
+```
+
+Diese Komponente müsste innerhalb des `HashRouter` gerendert werden:
+
+```tsx
+<HashRouter>
+  <DocumentTitle />
+  <Header />
+  ...
+</HashRouter>
+```
+
+Der Ablauf wäre:
+
+```text
+Route ändert sich
+    ↓
+location.pathname ändert sich
+    ↓
+React rendert DocumentTitle erneut
+    ↓
+useEffect läuft wegen [location.pathname]
+    ↓
+document.title wird aktualisiert
+```
+
+> Ich habe `useEffect` verwendet, um den Browser-Titel mit der aktuellen Route zu synchronisieren. Der Titel gehört nicht zur React-Komponente selbst, sondern zum Browser-Dokument. Deshalb handelt es sich um einen Side Effect. Die Abhängigkeit `location.pathname` sorgt dafür, dass der Effect nur ausgeführt wird, wenn sich die Route ändert.
+
+Der Unterschied zu den temporären drei Test-Effects ist:
+
+- Die Test-Effects waren nur zum Beobachten.
+- Die Titel-Synchronisierung ist eine echte, sinnvolle Funktion der Anwendung.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What does React actually compare, between renders, to decide whether to re-run an effect with a populated dependency array? What happens if you omit a value your effect actually uses from that array?
-- [ ] What's the difference, in practice, between `useEffect(fn, [])` and just writing `fn()` directly in the component body? Why doesn't the second one work the way you'd expect for "run once"?
+- [x] What does React actually compare, between renders, to decide whether to re-run an effect with a populated dependency array? What happens if you omit a value your effect actually uses from that array?
+
+React vergleicht bei einem Effect mit Dependency-Array die **aktuellen Dependency-Werte mit den Werten des vorherigen Renders**.
+
+Beispiel:
+
+```tsx
+useEffect(() => {
+  document.title = pageTitles[location.pathname] ?? "Project ReMotion";
+}, [location.pathname]);
+```
+
+React merkt sich den vorherigen Wert von:
+
+```tsx
+location.pathname;
+```
+
+und vergleicht ihn beim nächsten Render mit dem aktuellen Wert.
+
+Vereinfacht:
+
+```text
+vorher: "/dashboard"
+aktuell: "/dashboard"
+→ Effect läuft nicht erneut
+
+vorher: "/dashboard"
+aktuell: "/evidence"
+→ Effect läuft erneut
+```
+
+React vergleicht dabei nicht alle Werte tiefgehend, sondern verwendet eine Referenz-/Wertprüfung, die im Wesentlichen `Object.is` entspricht.
+
+## Was passiert bei fehlender Dependency?
+
+Wenn der Effect einen Wert verwendet, dieser aber nicht im Dependency-Array steht, weiß React nicht, dass der Effect bei einer Änderung dieses Wertes erneut ausgeführt werden müsste.
+
+Beispiel:
+
+```tsx
+useEffect(() => {
+  document.title = `Evidence: ${search}`;
+}, []);
+```
+
+Der Effect verwendet `search`, aber `search` fehlt im Array.
+
+Dann passiert:
+
+1. Der Effect läuft beim initialen Render.
+2. Danach ändert sich `search`.
+3. React rendert erneut.
+4. Der Effect läuft trotzdem nicht erneut.
+5. Der Dokumenttitel enthält möglicherweise noch den alten Suchwert.
+
+Der Effect arbeitet dann mit einem veralteten Wert. Das wird häufig als **stale closure** oder veralteter Abschluss bezeichnet.
+
+Korrekt wäre:
+
+```tsx
+useEffect(() => {
+  document.title = `Evidence: ${search}`;
+}, [search]);
+```
+
+Jetzt weiß React:
+
+> Wenn sich `search` ändert, muss dieser Effect erneut ausgeführt werden.
+
+## Bezug zu der `DocumentTitle`-Komponente
+
+Der Effect verwendet:
+
+```tsx
+location.pathname;
+```
+
+Deshalb steht genau dieser Wert in den Dependencies:
+
+```tsx
+}, [location.pathname]);
+```
+
+Wenn der Benutzer von Dashboard zu Evidence navigiert:
+
+```text
+location.pathname:
+"/dashboard" → "/evidence"
+```
+
+React erkennt die Änderung und führt den Effect erneut aus.
+
+## Kurz gesagt
+
+> React vergleicht bei einem Effect mit Dependency-Array jeden aktuellen Dependency-Wert mit dem Wert des vorherigen Renders. Wenn sich mindestens ein Wert ändert, wird der Effect erneut ausgeführt. Wenn ein verwendeter Wert im Dependency-Array fehlt, erkennt React seine Änderung nicht. Der Effect läuft dann nicht erneut und kann mit einem veralteten Wert arbeiten. Deshalb müssen alle reaktiven Werte, die der Effect verwendet, normalerweise im Dependency-Array stehen.
+
+- [x] What's the difference, in practice, between `useEffect(fn, [])` and just writing `fn()` directly in the component body? Why doesn't the second one work the way you'd expect for "run once"?
+
+Ja.
+
+## `useEffect(fn, [])`
+
+```tsx
+useEffect(() => {
+  console.log("Effect läuft");
+}, []);
+```
+
+Das bedeutet:
+
+> Führe diesen Effect nach dem ersten Rendern beziehungsweise nach dem Mount der Komponente aus.
+
+Der leere Dependency-Array sagt React, dass der Effect keine Werte beobachtet, die eine erneute Ausführung auslösen.
+
+Wichtig: In React Strict Mode kann der Effect in der Entwicklungsumgebung absichtlich zusätzlich ausgeführt werden, um problematische Effects zu erkennen. „Einmal“ bedeutet daher praktisch: einmal pro Mount im normalen Verhalten, nicht zwingend exakt einmal in jedem Development-Test.
+
+## `fn()` direkt im Component Body
+
+```tsx
+function App() {
+  console.log("App render");
+
+  return ...;
+}
+```
+
+Das wird bei **jedem Render** ausgeführt.
+
+Ein Render kann passieren, wenn:
+
+- sich eigener State ändert,
+- sich Props ändern,
+- sich Context ändert,
+- die Komponente erneut in der UI erscheint.
+
+Beispiel:
+
+```tsx
+function App() {
+  fetch("data/evidence.json");
+
+  return <div>...</div>;
+}
+```
+
+Das scheint zunächst zu funktionieren, aber bei mehreren Rendern entstehen mehrere Requests:
+
+```text
+Render 1 → Request 1
+Render 2 → Request 2
+Render 3 → Request 3
+```
+
+Dasselbe Problem gilt für:
+
+```tsx
+localStorage.setItem(...);
+document.title = "...";
+window.addEventListener(...);
+```
+
+Diese Aktionen würden bei jedem Render wiederholt werden.
+
+## Warum funktioniert `fn()` nicht für „run once“?
+
+Weil der Component Body keine einmalige Initialisierung ist. Er ist der Render-Code und kann beliebig oft ausgeführt werden.
+
+```text
+Komponente wird gerendert
+    ↓
+Component Body läuft
+    ↓
+State ändert sich
+    ↓
+Komponente wird erneut gerendert
+    ↓
+Component Body läuft erneut
+```
+
+`useEffect(fn, [])` teilt React dagegen mit, dass die Aktion als Effect nach dem Rendern ausgeführt und an den Lebenszyklus der Komponente gebunden werden soll.
+
+## Vergleich
+
+| Variante                 | Ausführung                                     |
+| ------------------------ | ---------------------------------------------- |
+| `fn()` im Component Body | bei jedem Render, direkt während des Renderns  |
+| `useEffect(fn, [])`      | nach dem Mount, normalerweise einmal pro Mount |
+| `useEffect(fn)`          | nach jedem Render, aber nach dem Rendern       |
+| `useEffect(fn, [value])` | nach dem Mount und wenn `value` sich ändert    |
+
+### Kurzgesagt
+
+> `fn()` direkt im Component Body wird bei jedem Render ausgeführt und eignet sich deshalb nicht für „run once“. Ein Render kann durch State-, Props- oder Context-Änderungen mehrfach stattfinden. `useEffect(fn, [])` wird dagegen nach dem Mount ausgeführt und nicht bei jedem normalen Re-Render erneut. Außerdem gehören externe Aktionen wie Fetch, Storage, Event-Listener oder `document.title` in einen Effect, weil der Render selbst nur die UI aus aktuellem State und Props berechnen sollte.
 
 ---
 
@@ -619,9 +1013,7 @@ Die aktuelle Variante bleibt eine Berechnung ohne unerwünschte Veränderung der
 
 **Tasks**
 
-- [ ] Set up a minimal Node.js server (Express or equivalent) with one GET endpoint per data
-      resource (case, evidence, people, locations, timeline), each returning the same shape of data
-      as the corresponding `data/*.json` file does today.
+- [ ] Set up a minimal Node.js server (Express or equivalent) with one GET endpoint per data resource (case, evidence, people, locations, timeline), each returning the same shape of data as the corresponding `data/*.json` file does today.
 - [ ] Add a way to deliberately simulate real-world conditions for testing later demos: an artificial delay (configurable, e.g. via a query param or env var) on at least one endpoint, and a way to make one endpoint return an error response (e.g. a 500) on demand.
 - [ ] Confirm the server runs locally alongside `vite dev` and is documented (a README section is enough) as dev-only (not part of the Exercise 2 deploy pipeline).
 
@@ -642,9 +1034,7 @@ Die aktuelle Variante bleibt eine Berechnung ohne unerwünschte Veränderung der
 **Questions** (depend on the tasks above)
 
 - [ ] Walk through exactly what happens, in order, from the component mounting to the data actually being available to render: what does the effect do, when does it run, and what causes the component to re-render once the data arrives?
-- [ ] What's different about your component now compared to before (when data came from a static
-      import/fetch of a local file). Specifically in terms of what state it needs to track that it
-      didn't need before?
+- [ ] What's different about your component now compared to before (when data came from a static import/fetch of a local file). Specifically in terms of what state it needs to track that it didn't need before?
 
 ---
 

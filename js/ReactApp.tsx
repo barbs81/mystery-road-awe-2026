@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { HashRouter } from "react-router-dom";
+import { DocumentTitle } from "./app/DocumentTitle.js";
 import { Header } from "./app/Header.js";
 import { RouteContent } from "./app/RouteContent.js";
 import { BookmarkProvider } from "./contexts/BookmarkContext.js";
@@ -44,6 +45,19 @@ export default function App() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [demoValue, setDemoValue] = useState(0);
+
+  useEffect(() => {
+    console.log("Effect mit leerem Array: []");
+  }, []);
+
+  useEffect(() => {
+    console.log("Effect mit Dependency: [demoValue]", demoValue);
+  }, [demoValue]);
+
+  useEffect(() => {
+    console.log("Effect ohne Dependency-Array");
+  });
 
   useEffect(() => {
     console.log("Use Effect in App"); //innerhalb useEffect, wird nur beim ersten Rendern der App aufgerufen
@@ -122,6 +136,13 @@ export default function App() {
   return (
     <HashRouter>
       <BookmarkProvider value={{ bookmarks, onToggleBookmark: toggleBookmark }}>
+        <DocumentTitle />
+        <button
+          type="button"
+          onClick={() => setDemoValue((value) => value + 1)}
+        >
+          Test value: {demoValue}
+        </button>
         <Header />
         {isLoading ? (
           <main className="app-main">
